@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Burger House - Cardápio Dinâmico</title>
+    <style>
+        :root {
+            --primary: #ff4757;
+            --dark: #2f3542;
+            --light: #f1f2f6;
+            --success: #2ed573;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f8f9fa; color: var(--dark); padding-bottom: 50px; }
+        
+        header { background: var(--dark); color: white; padding: 20px; text-align: center; }
+        header h1 { color: var(--primary); margin-bottom: 5px; }
+
+        .container { max-width: 1200px; margin: 20px auto; padding: 0 15px; }
+
+        /* Banners / Promoções */
+        .promo-banner {
+            background: linear-gradient(135deg, #ff6b6b, #ee5253);
+            color: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(238, 82, 83, 0.3);
+        }
+        .promo-banner h2 { margin-bottom: 10px; font-size: 1.8rem; }
+        .promo-images { display: flex; gap: 10px; justify-content: center; margin-top: 15px; flex-wrap: wrap; }
+        .promo-images img { width: 150px; height: 100px; object-fit: cover; border-radius: 8px; cursor: pointer; transition: transform 0.2s; }
+        .promo-images img:hover { transform: scale(1.05); }
+
+        /* Seções e Categorias */
+        .category-section { margin-bottom: 40px; }
+        .section-title { font-size: 1.6rem; margin-bottom: 20px; border-bottom: 2px solid #ddd; padding-bottom: 5px; color: var(--dark); }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+        
+        .card { background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); display: flex; flex-direction: column; justify-content: space-between; }
+        .card img { width: 100%; height: 180px; object-fit: cover; cursor: pointer; transition: opacity 0.2s; }
+        .card img:hover { opacity: 0.9; }
+        .card-content { padding: 15px; }
+        .card-title { font-size: 1.2rem; font-weight: bold; margin-bottom: 8px; }
+        .card-desc { font-size: 0.9rem; color: #666; margin-bottom: 12px; }
+        .card-footer { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #fafafa; border-top: 1px solid #eee; }
+        .price { font-size: 1.2rem; font-weight: bold; color: var(--primary); }
+
+        .btn { background: var(--primary); color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: background 0.2s; }
+        .btn:hover { background: #e84118; }
+
+        /* Modal de Detalhes / Adicionais */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 15px; }
+        .modal { background: white; width: 100%; max-width: 500px; border-radius: 10px; overflow: hidden; max-height: 90vh; display: flex; flex-direction: column; }
+        .modal-header { background: var(--dark); color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .modal-body { padding: 20px; overflow-y: auto; }
+        .modal-body img { width: 100%; height: 220px; object-fit: cover; border-radius: 8px; margin-bottom: 15px; cursor: pointer; }
+        .close-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
+        
+        .addon-group { margin-top: 15px; }
+        .addon-item { display: flex; justify-content: space-between; margin-bottom: 8px; align-items: center; }
+
+        .modal-footer { padding: 15px; background: #f1f2f6; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #ddd; }
+        
+        /* Modal de Zoom de Imagem */
+        .zoom-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 2000; cursor: pointer; }
+        .zoom-modal img { max-width: 90%; max-height: 90%; border-radius: 5px; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1 id="shopTitle">Burger House 🍔</h1>
+        <p>Cardápio atualizado em tempo real pelo NocoDB</p>
+    </header>
+
+    <div class="container">
+        <!-- Seção de Promoções / Anúncios -->
+        <div class="promo-banner">
+            <h2>🔥 Destaques e Promoções 🔥</h2>
+            <p>Confira nossos banners especiais atualizados pelo painel:</p>
+            <div class="promo-images" id="promoContainer">
+                <!-- Imagens injetadas via JS -->
+            </div>
+        </div>
+
+        <!-- Onde o cardápio por categorias dinâmicas será renderizado -->
+        <div id="menuContainer"></div>
+    </div>
+
+    <!-- Modal do Produto / Adicionais -->
+    <div class="modal-overlay" id="productModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modalProductName">Nome do Hambúrguer</h3>
+                <button class="close-btn" onclick="closeModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <img id="modalProductImg" src="" alt="Produto" onclick="openZoom(this.src)">
+                <p id="modalProductDesc">Descrição detalhada...</p>
+                
+                <div class="addon-group">
+                    <h4>Escolha seus Adicionais:</h4>
+                    <div id="addonsList"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div>Total: <span class="price" id="modalTotalPrice">R$ 0,00</span></div>
+                <button class="btn" onclick="addToCart()">Adicionar ao Pedido</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Zoom de Imagem -->
+    <div class="zoom-modal" id="zoomModal" onclick="closeZoom()">
+        <img id="zoomImg" src="" alt="Zoom">
+    </div>
+
+    <script>
+        // Simulando dados vindos das tabelas 'categorias' e 'produtos' do NocoDB
+        // Se você alterar o nome na tabela 'categorias' no NocoDB, reflete aqui ao atualizar a página.
+        const dadosCardapio = [
+            {
+                idCategoria: 1,
+                nomeCategoria: "🍔 Nossos Hambúrgueres Artesanais",
+                produtos: [
+                    { id: 101, nome: "Monster Burger", preco: 32.90, desc: "Pão brioche, 2x carne 160g, cheddar duplo, bacon crocante.", img: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=600&q=80" },
+                    { id: 102, nome: "Smokey Bacon", preco: 28.50, desc: "Pão australiano, carne 160g, queijo prato, muito bacon.", img: "https://images.unsplash.com/photo-1586190848861-99aa4a171e90?auto=format&fit=crop&w=600&q=80" }
+                ]
+            },
+            {
+                idCategoria: 2,
+                nomeCategoria: "🥤 Bebidas Geladas",
+                produtos: [
+                    { id: 201, nome: "Refrigerante Lata 350ml", preco: 6.00, desc: "Coca-Cola, Guaraná Antarctica ou Sprite bem gelados.", img: "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=600&q=80" },
+                    { id: 202, nome: "Suco Natural de Laranja", preco: 8.50, desc: "Feito na hora com 500ml de pura fruta.", img: "https://images.unsplash.com/photo-1613478223719-2ab802602423?auto=format&fit=crop&w=600&q=80" }
+                ]
+            }
+        ];
+
+        const adicionais = [
+            { id: 1, nome: "Bacon Extra", preco: 5.00 },
+            { id: 2, nome: "Cheddar Cremoso", preco: 4.00 },
+            { id: 3, nome: "Ovo Frito", preco: 3.00 }
+        ];
+
+        const promocoesImagens = [
+            "https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=400&q=80",
+            "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=400&q=80"
+        ];
+
+        let produtoAtual = null;
+
+        // Renderizar Banners de Promoção
+        function renderPromos() {
+            const container = document.getElementById('promoContainer');
+            container.innerHTML = promocoesImagens.map(img => `<img src="${img}" onclick="openZoom(this.src)" alt="Promoção">`).join('');
+        }
+
+        // Renderizar Cardápio Dinâmico baseado nas Categorias do NocoDB
+        function renderMenu() {
+            const menuContainer = document.getElementById('menuContainer');
+            
+            menuContainer.innerHTML = dadosCardapio.map(cat => `
+                <div class="category-section">
+                    <h2 class="section-title">${cat.nomeCategoria}</h2>
+                    <div class="grid">
+                        ${cat.produtos.map(p => `
+                            <div class="card">
+                                <img src="${p.img}" alt="${p.nome}" onclick="openZoom('${p.img}')">
+                                <div class="card-content">
+                                    <div class="card-title">${p.nome}</div>
+                                    <div class="card-desc">${p.desc}</div>
+                                </div>
+                                <div class="card-footer">
+                                    <span class="price">R$ ${p.preco.toFixed(2)}</span>
+                                    <button class="btn" onclick="openProductModal(${p.id})">Pedir</button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Encontrar produto em qualquer categoria
+        function findProductById(id) {
+            for (let cat of dadosCardapio) {
+                let prod = cat.produtos.find(p => p.id === id);
+                if (prod) return prod;
+            }
+            return null;
+        }
+
+        // Abrir Modal do Produto
+        function openProductModal(id) {
+            produtoAtual = findProductById(id);
+            if (!produtoAtual) return;
+
+            document.getElementById('modalProductName').innerText = produtoAtual.nome;
+            document.getElementById('modalProductDesc').innerText = produtoAtual.desc;
+            document.getElementById('modalProductImg').src = produtoAtual.img;
+
+            const addonsDiv = document.getElementById('addonsList');
+            addonsDiv.innerHTML = adicionais.map(a => `
+                <div class="addon-item">
+                    <label>
+                        <input type="checkbox" value="${a.preco}" data-nome="${a.nome}" onchange="calcularTotal()">
+                        ${a.nome}
+                    </label>
+                    <span>+ R$ ${a.preco.toFixed(2)}</span>
+                </div>
+            `).join('');
+
+            calcularTotal();
+            document.getElementById('productModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('productModal').style.display = 'none';
+        }
+
+        function calcularTotal() {
+            let total = produtoAtual.preco;
+            const checkboxes = document.querySelectorAll('#addonsList input[type="checkbox"]:checked');
+            checkboxes.forEach(cb => {
+                total += parseFloat(cb.value);
+            });
+            document.getElementById('modalTotalPrice').innerText = `R$ ${total.toFixed(2)}`;
+        }
+
+        function openZoom(src) {
+            document.getElementById('zoomImg').src = src;
+            document.getElementById('zoomModal').style.display = 'flex';
+        }
+
+        function closeZoom() {
+            document.getElementById('zoomModal').style.display = 'none';
+        }
+
+        function addToCart() {
+            const checkboxes = document.querySelectorAll('#addonsList input[type="checkbox"]:checked');
+            let adicionaisSelecionados = [];
+            let adicionalTotalPreco = 0;
+
+            checkboxes.forEach(cb => {
+                adicionaisSelecionados.push(cb.dataset.nome);
+                adicionalTotalPreco += parseFloat(cb.value);
+            });
+
+            let valorFinalItem = produtoAtual.preco + adicionalTotalPreco;
+
+            alert(`Pedido registrado com sucesso!\nProduto: ${produtoAtual.nome}\nAdicionais: ${adicionaisSelecionados.join(', ') || 'Nenhum'}\nTotal: R$ ${valorFinalItem.toFixed(2)}`);
+            closeModal();
+        }
+
+        // Inicializar
+        renderPromos();
+        renderMenu();
+    </script>
+</body>
+</html>
