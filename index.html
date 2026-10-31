@@ -116,7 +116,6 @@
         <button class="btn btn-success" onclick="openCheckoutModal()">Finalizar Pedido 📲</button>
     </div>
 
-    <!-- Modal Detalhes -->
     <div class="modal-overlay" id="productModal">
         <div class="modal">
             <div class="modal-header">
@@ -145,7 +144,6 @@
         </div>
     </div>
 
-    <!-- Modal Checkout -->
     <div class="modal-overlay" id="checkoutModal">
         <div class="modal">
             <div class="modal-header">
@@ -178,9 +176,11 @@
     </div>
 
     <script>
-        // CONFIGURAÇÕES GLOBAIS DO PROJETO NOCODB DO CLIENTE
-        const NOCODB_BASE_URL = "https://app.nocodb.com/api/v1/db/data/v1/pq15vouvhb05800";
-        const NOCODB_TOKEN = "nc_pat_qPAlziW9D9nQIklvAOuOwuJiyV3jV6K5GfXvyBqZ";
+        // AS VARIÁVEIS ABAIXO SÃO INJETADAS PELA VERCEL AUTOMATICAMENTE NO DEPLOY
+        const NOCODB_BASE_URL = "__ENV_BASE_URL__";
+        const NOCODB_TOKEN = "__ENV_TOKEN__";
+        const TABELA_PRODUTOS = "__ENV_TABELA_PRODUTOS__";
+        const TABELA_CONFIG = "__ENV_TABELA_CONFIG__";
 
         let dadosLoja = { nome: "Cardápio Digital", whatsapp: "" };
         let listaProdutos = [];
@@ -190,8 +190,7 @@
 
         async function inicializarLoja() {
             try {
-                // 1. Busca as configurações da loja direto da tabela 'config' do NocoDB
-                const resConfig = await fetch(`${NOCODB_BASE_URL}/config`, {
+                const resConfig = await fetch(`${NOCODB_BASE_URL}/${TABELA_CONFIG}`, {
                     headers: { 'xc-token': NOCODB_TOKEN }
                 });
                 const dataConfig = await resConfig.json();
@@ -201,8 +200,7 @@
                 }
                 document.getElementById('shopTitle').innerText = dadosLoja.nome;
 
-                // 2. Busca os produtos direto da tabela 'produtos' do NocoDB
-                const resProdutos = await fetch(`${NOCODB_BASE_URL}/produtos`, {
+                const resProdutos = await fetch(`${NOCODB_BASE_URL}/${TABELA_PRODUTOS}`, {
                     headers: { 'xc-token': NOCODB_TOKEN }
                 });
                 const dataProdutos = await resProdutos.json();
@@ -361,7 +359,7 @@
             }
 
             if (!dadosLoja.whatsapp) {
-                alert("O número de WhatsApp da loja não foi configurado na tabela 'config' do NocoDB.");
+                alert("O número de WhatsApp da loja não foi configurado na tabela de configuração do NocoDB.");
                 return;
             }
 
