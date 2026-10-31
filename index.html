@@ -151,8 +151,11 @@
 
     <script>
         // ENDEREÇO BASE DO SEU NOCODB
-        const NOCODB_BASE_URL = "https://app.nocodb.com/api/v1/db/data/v1/p_SEU_PROJETO_ID";
-        const NOCODB_TOKEN = "SEU_TOKEN_DE_API_DO_NOCODB";
+        // 1. A URL Base da API do NocoDB com o seu Project ID extraído da URL:
+const NOCODB_BASE_URL = "https://app.nocodb.com/api/v1/db/data/v1/pq15vouvhb05800";
+
+// 2. O seu Token de Acesso da API do NocoDB (gerado nas configurações da sua conta/projeto):
+const NOCODB_TOKEN = "nc_pat_qPAlziW9D9nQIklvAOuOwuJiyV3jV6K5GfXvyBqZ";
 
         // Captura o slug da loja direto da URL (Ex: meucardapio.vercel.app/?loja=joao)
         const urlParams = new URLSearchParams(window.location.search);
