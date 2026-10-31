@@ -19,7 +19,6 @@
 
         .container { max-width: 1200px; margin: 20px auto; padding: 0 15px; }
 
-        /* Banners / Promoções */
         .promo-banner {
             background: linear-gradient(135deg, #ff6b6b, #ee5253);
             color: white;
@@ -33,7 +32,6 @@
         .promo-images { display: flex; gap: 10px; justify-content: center; margin-top: 15px; flex-wrap: wrap; }
         .promo-images img { width: 140px; height: 90px; object-fit: cover; border-radius: 8px; cursor: pointer; }
 
-        /* Categorias e Produtos */
         .category-section { margin-bottom: 40px; }
         .section-title { font-size: 1.5rem; margin-bottom: 20px; border-bottom: 2px solid #ddd; padding-bottom: 5px; }
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
@@ -51,11 +49,9 @@
         .btn-success { background: var(--success); }
         .btn-success:hover { background: #26af5f; }
 
-        /* Barra do Carrinho */
         .cart-bar { position: fixed; bottom: 0; left: 0; width: 100%; background: var(--dark); color: white; padding: 15px 20px; display: none; justify-content: space-between; align-items: center; z-index: 900; box-shadow: 0 -4px 10px rgba(0,0,0,0.2); }
         .cart-info { font-size: 1.1rem; font-weight: bold; }
 
-        /* Modais */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 15px; }
         .modal { background: white; width: 100%; max-width: 500px; border-radius: 10px; overflow: hidden; max-height: 90vh; display: flex; flex-direction: column; }
         .modal-header { background: var(--dark); color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
@@ -95,7 +91,6 @@
         <button class="btn btn-success" onclick="openCheckoutModal()">Finalizar Pedido (WhatsApp)</button>
     </div>
 
-    <!-- Modal Adicionais -->
     <div class="modal-overlay" id="productModal">
         <div class="modal">
             <div class="modal-header">
@@ -117,7 +112,6 @@
         </div>
     </div>
 
-    <!-- Modal Checkout -->
     <div class="modal-overlay" id="checkoutModal">
         <div class="modal">
             <div class="modal-header">
@@ -150,11 +144,9 @@
     </div>
 
     <script>
-        // CONFIGURAÇÕES DO NOCODB
         const NOCODB_BASE_URL = "https://app.nocodb.com/api/v1/db/data/v1/pq15vouvhb05800";
         const NOCODB_TOKEN = "nc_pat_qPAlziW9D9nQIklvAOuOwuJiyV3jV6K5GfXvyBqZ";
 
-        // Captura o slug da loja direto da URL (Ex: ?loja=padaria)
         const urlParams = new URLSearchParams(window.location.search);
         const lojaSlug = urlParams.get('loja');
 
@@ -170,33 +162,37 @@
             }
 
             try {
-                // 1. Consulta na Tabela Mestre usando o nome exato do NocoDB
-                const resMestre = await fetch(`${NOCODB_BASE_URL}/clientes_licencas-clientes_licencas?where=(slug,eq,${lojaSlug})`, {
+                // CORREÇÃO: Adicionadas aspas simples no valor da query string (slug,eq,'${lojaSlug}')
+                const urlBusca = `${NOCODB_BASE_URL}/clientes_licencas-clientes_licencas?where=(slug,eq,'${lojaSlug}')`;
+                console.log("Buscando loja em:", urlBusca);
+
+                const resMestre = await fetch(urlBusca, {
                     headers: { 
                         'xc-token': NOCODB_TOKEN,
                         'Content-Type': 'application/json'
                     }
                 });
+                
                 const jsonMestre = await resMestre.json();
+                console.log("Resposta do NocoDB:", jsonMestre);
 
                 if (!jsonMestre.list || jsonMestre.list.length === 0) {
-                    document.body.innerHTML = "<h2 style='text-align:center; margin-top:50px;'>Estabelecimento não encontrado.</h2>";
+                    document.body.innerHTML = `<h2 style='text-align:center; margin-top:50px;'>Estabelecimento não encontrado (${lojaSlug}).</h2>`;
                     return;
                 }
 
                 dadosLicencaLojista = jsonMestre.list[0];
 
-                // 2. Valida se a licença está ATIVA
                 if (dadosLicencaLojista.status_liberacao !== 'Ativo') {
-                    document.body.innerHTML = "<h2 style='text-align:center; margin-top:50px; color: red;'>Este cardápio está temporariamente indisponível. Entre em contato com a loja.</h2>";
+                    document.body.innerHTML = "<h2 style='text-align:center; margin-top:50px; color: red;'>Este cardápio está temporariamente indisponível.</h2>";
                     return;
                 }
 
                 document.getElementById('shopTitle').innerText = dadosLicencaLojista.nome_loja;
                 document.getElementById('pageTitle').innerText = dadosLicencaLojista.nome_loja + " - Cardápio Digital";
 
-                // 3. Busca dinâmica na tabela exclusiva do cliente
                 const nomeTabelaExclusiva = dadosLicencaLojista.nome_da_tabela; 
+                console.log("Buscando produtos na tabela:", nomeTabelaExclusiva);
 
                 const resCliente = await fetch(`${NOCODB_BASE_URL}/${nomeTabelaExclusiva}`, {
                     headers: { 
@@ -207,12 +203,11 @@
                 const jsonCliente = await resCliente.json();
                 listaItensCliente = jsonCliente.list || [];
 
-                // Renderizar Cardápio e Banners
                 renderizarTela();
 
             } catch (error) {
-                console.error("Erro ao carregar cardápio:", error);
-                document.body.innerHTML = "<h2 style='text-align:center; margin-top:50px;'>Erro ao carregar o cardápio. Tente novamente mais tarde.</h2>";
+                console.error("Erro crítico ao carregar cardápio:", error);
+                document.body.innerHTML = "<h2 style='text-align:center; margin-top:50px;'>Erro ao carregar o cardápio. Verifique o console (F12).</h2>";
             }
         }
 
@@ -348,7 +343,6 @@
             window.open(url, '_blank');
         }
 
-        // Inicializar aplicação
         inicializarSistema();
     </script>
 </body>
