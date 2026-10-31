@@ -150,14 +150,11 @@
     </div>
 
     <script>
-        // ENDEREÇO BASE DO SEU NOCODB
-        // 1. A URL Base da API do NocoDB com o seu Project ID extraído da URL:
-const NOCODB_BASE_URL = "https://app.nocodb.com/api/v1/db/data/v1/pq15vouvhb05800";
+        // CONFIGURAÇÕES DO NOCODB
+        const NOCODB_BASE_URL = "https://app.nocodb.com/api/v1/db/data/v1/pq15vouvhb05800";
+        const NOCODB_TOKEN = "nc_pat_qPAlziW9D9nQIklvAOuOwuJiyV3jV6K5GfXvyBqZ";
 
-// 2. O seu Token de Acesso da API do NocoDB (gerado nas configurações da sua conta/projeto):
-const NOCODB_TOKEN = "nc_pat_qPAlziW9D9nQIklvAOuOwuJiyV3jV6K5GfXvyBqZ";
-
-        // Captura o slug da loja direto da URL (Ex: meucardapio.vercel.app/?loja=joao)
+        // Captura o slug da loja direto da URL (Ex: ?loja=padaria)
         const urlParams = new URLSearchParams(window.location.search);
         const lojaSlug = urlParams.get('loja');
 
@@ -168,14 +165,17 @@ const NOCODB_TOKEN = "nc_pat_qPAlziW9D9nQIklvAOuOwuJiyV3jV6K5GfXvyBqZ";
 
         async function inicializarSistema() {
             if (!lojaSlug) {
-                document.body.innerHTML = "<h2 style='text-align:center; margin-top:50px;'>Por favor, acesse utilizando o link fornecido pela loja.</h2>";
+                document.body.innerHTML = "<h2 style='text-align:center; margin-top:50px;'>Por favor, acesse utilizando o link fornecido pela loja (ex: ?loja=padaria).</h2>";
                 return;
             }
 
             try {
-                // 1. O código consulta a Tabela Mestre 'clientes_licencas'
-                const resMestre = await fetch(`${NOCODB_BASE_URL}/clientes_licencas?where=(slug,eq,${lojaSlug})`, {
-                    headers: { 'xc-token': NOCODB_TOKEN }
+                // 1. Consulta na Tabela Mestre usando o nome exato do NocoDB
+                const resMestre = await fetch(`${NOCODB_BASE_URL}/clientes_licencas-clientes_licencas?where=(slug,eq,${lojaSlug})`, {
+                    headers: { 
+                        'xc-token': NOCODB_TOKEN,
+                        'Content-Type': 'application/json'
+                    }
                 });
                 const jsonMestre = await resMestre.json();
 
@@ -186,7 +186,7 @@ const NOCODB_TOKEN = "nc_pat_qPAlziW9D9nQIklvAOuOwuJiyV3jV6K5GfXvyBqZ";
 
                 dadosLicencaLojista = jsonMestre.list[0];
 
-                // 2. Valida se a licença está ATIVA (Controle de Mensalidade)
+                // 2. Valida se a licença está ATIVA
                 if (dadosLicencaLojista.status_liberacao !== 'Ativo') {
                     document.body.innerHTML = "<h2 style='text-align:center; margin-top:50px; color: red;'>Este cardápio está temporariamente indisponível. Entre em contato com a loja.</h2>";
                     return;
@@ -195,11 +195,14 @@ const NOCODB_TOKEN = "nc_pat_qPAlziW9D9nQIklvAOuOwuJiyV3jV6K5GfXvyBqZ";
                 document.getElementById('shopTitle').innerText = dadosLicencaLojista.nome_loja;
                 document.getElementById('pageTitle').innerText = dadosLicencaLojista.nome_loja + " - Cardápio Digital";
 
-                // 3. A MÁGICA ACONTECE AQUI: O código busca DINAMICAMENTE na tabela exclusiva do cliente
-                const nomeTabelaExclusiva = dadosLicencaLojista.nome_da_tabela; // Ex: "cardapio_joao"
+                // 3. Busca dinâmica na tabela exclusiva do cliente
+                const nomeTabelaExclusiva = dadosLicencaLojista.nome_da_tabela; 
 
                 const resCliente = await fetch(`${NOCODB_BASE_URL}/${nomeTabelaExclusiva}`, {
-                    headers: { 'xc-token': NOCODB_TOKEN }
+                    headers: { 
+                        'xc-token': NOCODB_TOKEN,
+                        'Content-Type': 'application/json'
+                    }
                 });
                 const jsonCliente = await resCliente.json();
                 listaItensCliente = jsonCliente.list || [];
@@ -214,11 +217,9 @@ const NOCODB_TOKEN = "nc_pat_qPAlziW9D9nQIklvAOuOwuJiyV3jV6K5GfXvyBqZ";
         }
 
         function renderizarTela() {
-            // Filtrar Produtos, Adicionais e Banners da tabela do cliente
             const produtos = listaItensCliente.filter(item => item.tipo === 'Produto' && item.disponivel !== false);
             const banners = listaItensCliente.filter(item => item.tipo === 'Banner');
 
-            // Renderizar Banners se existirem
             if (banners.length > 0) {
                 document.getElementById('promoBannerSection').style.display = 'block';
                 document.getElementById('promoContainer').innerHTML = banners.map(b => `
@@ -226,7 +227,6 @@ const NOCODB_TOKEN = "nc_pat_qPAlziW9D9nQIklvAOuOwuJiyV3jV6K5GfXvyBqZ";
                 `).join('');
             }
 
-            // Agrupar e Renderizar Produtos
             const container = document.getElementById('menuContainer');
             container.innerHTML = `
                 <div class="category-section">
@@ -258,7 +258,6 @@ const NOCODB_TOKEN = "nc_pat_qPAlziW9D9nQIklvAOuOwuJiyV3jV6K5GfXvyBqZ";
             document.getElementById('modalProductDesc').innerText = produtoSelecionado.descricao || '';
             document.getElementById('modalProductImg').src = produtoSelecionado.imagem ? produtoSelecionado.imagem[0]?.url : '';
 
-            // Buscar adicionais cadastrados na tabela dele
             const adicionais = listaItensCliente.filter(item => item.tipo === 'Adicional');
 
             document.getElementById('addonsList').innerHTML = adicionais.map(a => `
@@ -318,7 +317,6 @@ const NOCODB_TOKEN = "nc_pat_qPAlziW9D9nQIklvAOuOwuJiyV3jV6K5GfXvyBqZ";
         function closeModal(id) { document.getElementById(id).style.display = 'none'; }
         function abrirZoom(src) { document.getElementById('zoomImg').src = src; document.getElementById('zoomModal').style.display = 'flex'; }
 
-        // GERAR E ENVIAR NOTA FISCAL PARA O WHATSAPP
         function enviarPedidoWhatsApp() {
             const nome = document.getElementById('clientName').value;
             const telefone = document.getElementById('clientPhone').value;
@@ -350,7 +348,7 @@ const NOCODB_TOKEN = "nc_pat_qPAlziW9D9nQIklvAOuOwuJiyV3jV6K5GfXvyBqZ";
             window.open(url, '_blank');
         }
 
-        // Iniciar
+        // Inicializar aplicação
         inicializarSistema();
     </script>
 </body>
