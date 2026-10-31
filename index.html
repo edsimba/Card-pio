@@ -3,78 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title id="pageTitle">Cardápio Digital</title>
+    <title>Cardápio Digital</title>
     <style>
         :root {
-            --primary: #ff4757;
-            --dark: #2f3542;
-            --light: #f1f2f6;
-            --success: #2ed573;
+            --primary: #e67e22;
+            --primary-dark: #d35400;
+            --secondary: #2c3e50;
+            --bg-color: #fcfcfc;
+            --card-bg: #ffffff;
+            --text-main: #333333;
+            --text-muted: #7f8c8d;
+            --success: #27ae60;
+            --shadow: 0 10px 25px rgba(0,0,0,0.06);
+            --radius: 16px;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: #f8f9fa; color: var(--dark); padding-bottom: 90px; }
-        
-        header { background: var(--dark); color: white; padding: 20px; text-align: center; }
-        header h1 { color: var(--primary); margin-bottom: 5px; }
 
-        .container { max-width: 1200px; margin: 20px auto; padding: 0 15px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); padding-bottom: 110px; }
+
+        header {
+            background: linear-gradient(135deg, var(--secondary), #1a252f);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+            border-bottom-left-radius: 24px;
+            border-bottom-right-radius: 24px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+        header h1 { font-size: 1.8rem; color: var(--primary); margin-bottom: 5px; font-weight: 700; }
+        header p { font-size: 0.950rem; color: #bdc3c7; }
+
+        .container { max-width: 1000px; margin: 25px auto; padding: 0 15px; }
 
         .promo-banner {
-            background: linear-gradient(135deg, #ff6b6b, #ee5253);
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
             color: white;
-            border-radius: 12px;
+            border-radius: var(--radius);
             padding: 20px;
             margin-bottom: 30px;
             text-align: center;
-            box-shadow: 0 4px 15px rgba(238, 82, 83, 0.3);
+            box-shadow: 0 8px 20px rgba(230, 126, 34, 0.25);
             display: none;
         }
-        .promo-images { display: flex; gap: 10px; justify-content: center; margin-top: 15px; flex-wrap: wrap; }
-        .promo-images img { width: 140px; height: 90px; object-fit: cover; border-radius: 8px; cursor: pointer; }
+        .promo-banner h2 { font-size: 1.3rem; margin-bottom: 12px; }
+        .promo-images { display: flex; gap: 12px; justify-content: center; overflow-x: auto; padding-bottom: 5px; }
+        .promo-images img { width: 150px; height: 100px; object-fit: cover; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
 
-        .category-section { margin-bottom: 40px; }
-        .section-title { font-size: 1.5rem; margin-bottom: 20px; border-bottom: 2px solid #ddd; padding-bottom: 5px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+        .category-section { margin-bottom: 35px; }
+        .section-title { font-size: 1.4rem; color: var(--secondary); margin-bottom: 18px; padding-bottom: 8px; border-bottom: 2px solid #eaeaea; font-weight: 700; }
         
-        .card { background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); display: flex; flex-direction: column; justify-content: space-between; }
-        .card img { width: 100%; height: 180px; object-fit: cover; cursor: pointer; }
-        .card-content { padding: 15px; }
-        .card-title { font-size: 1.2rem; font-weight: bold; margin-bottom: 8px; }
-        .card-desc { font-size: 0.9rem; color: #666; margin-bottom: 12px; }
-        .card-footer { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #fafafa; border-top: 1px solid #eee; }
-        .price { font-size: 1.2rem; font-weight: bold; color: var(--primary); }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        
+        .card { background: var(--card-bg); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); display: flex; flex-direction: column; justify-content: space-between; border: 1px solid #f0f0f0; cursor: pointer; transition: transform 0.2s; }
+        .card:hover { transform: translateY(-4px); }
+        .card img { width: 100%; height: 170px; object-fit: cover; }
+        .card-content { padding: 16px; }
+        .card-title { font-size: 1.15rem; font-weight: 700; color: var(--secondary); margin-bottom: 6px; }
+        .card-desc { font-size: 0.88rem; color: var(--text-muted); margin-bottom: 12px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .card-footer { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: #fafafa; border-top: 1px solid #f2f2f2; }
+        .price { font-size: 1.2rem; font-weight: 800; color: var(--primary); }
 
-        .btn { background: var(--primary); color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        .btn:hover { background: #e84118; }
+        .btn { background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 0.9rem; }
+        .btn:hover { background: var(--primary-dark); }
         .btn-success { background: var(--success); }
-        .btn-success:hover { background: #26af5f; }
+        .btn-success:hover { background: #219653; }
 
-        .cart-bar { position: fixed; bottom: 0; left: 0; width: 100%; background: var(--dark); color: white; padding: 15px 20px; display: none; justify-content: space-between; align-items: center; z-index: 900; box-shadow: 0 -4px 10px rgba(0,0,0,0.2); }
-        .cart-info { font-size: 1.1rem; font-weight: bold; }
+        .cart-bar { position: fixed; bottom: 0; left: 0; width: 100%; background: var(--secondary); color: white; padding: 16px 24px; display: none; justify-content: space-between; align-items: center; z-index: 900; box-shadow: 0 -6px 20px rgba(0,0,0,0.2); border-top-left-radius: 20px; border-top-right-radius: 20px; }
+        .cart-info { font-size: 1.1rem; font-weight: 700; }
 
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 15px; }
-        .modal { background: white; width: 100%; max-width: 500px; border-radius: 10px; overflow: hidden; max-height: 90vh; display: flex; flex-direction: column; }
-        .modal-header { background: var(--dark); color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 15px; }
+        .modal { background: white; width: 100%; max-width: 480px; border-radius: 20px; overflow: hidden; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
+        .modal-header { background: var(--secondary); color: white; padding: 18px 20px; display: flex; justify-content: space-between; align-items: center; }
         .modal-body { padding: 20px; overflow-y: auto; }
-        .modal-body img { width: 100%; height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 15px; }
+        .modal-body img { width: 100%; height: 220px; object-fit: cover; border-radius: 12px; margin-bottom: 15px; }
         .close-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
         
-        .addon-group { margin-top: 15px; }
-        .addon-item { display: flex; justify-content: space-between; margin-bottom: 8px; align-items: center; }
+        .quantity-control { display: flex; align-items: center; justify-content: center; gap: 15px; margin: 20px 0; }
+        .qty-btn { width: 36px; height: 36px; border-radius: 50%; border: 1px solid #ddd; background: #f8f9fa; font-size: 1.2rem; font-weight: bold; cursor: pointer; }
+        .qty-value { font-size: 1.2rem; font-weight: 700; }
+
+        .addon-group { margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px; }
+        .addon-item { display: flex; justify-content: space-between; margin-bottom: 10px; align-items: center; font-size: 0.95rem; }
+        
         .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; font-weight: bold; margin-bottom: 5px; }
-        .form-group input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
-        .modal-footer { padding: 15px; background: #f1f2f6; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #ddd; }
+        .form-group label { display: block; font-weight: 600; margin-bottom: 5px; color: var(--secondary); }
+        .form-group input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; font-size: 1rem; outline: none; }
+        
+        .modal-footer { padding: 18px 20px; background: #f8f9fa; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eaeaea; }
 
         .zoom-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 2000; cursor: pointer; }
-        .zoom-modal img { max-width: 90%; max-height: 90%; border-radius: 5px; }
+        .zoom-modal img { max-width: 90%; max-height: 90%; border-radius: 10px; }
     </style>
 </head>
 <body>
 
     <header>
         <h1 id="shopTitle">Carregando...</h1>
-        <p>Cardápio Digital</p>
+        <p>Escolha seus itens favoritos e peça direto pelo WhatsApp!</p>
     </header>
 
     <div class="container">
@@ -88,30 +113,39 @@
 
     <div class="cart-bar" id="cartBar">
         <div class="cart-info" id="cartSummary">0 itens | Total: R$ 0,00</div>
-        <button class="btn btn-success" onclick="openCheckoutModal()">Finalizar Pedido (WhatsApp)</button>
+        <button class="btn btn-success" onclick="openCheckoutModal()">Finalizar Pedido 📲</button>
     </div>
 
+    <!-- Modal Detalhes -->
     <div class="modal-overlay" id="productModal">
         <div class="modal">
             <div class="modal-header">
-                <h3 id="modalProductName">Produto</h3>
+                <h3 id="modalProductName">Detalhes do Item</h3>
                 <button class="close-btn" onclick="closeModal('productModal')">×</button>
             </div>
             <div class="modal-body">
                 <img id="modalProductImg" src="">
-                <p id="modalProductDesc"></p>
-                <div class="addon-group">
-                    <h4>Adicionais:</h4>
+                <p id="modalProductDesc" style="color: var(--text-muted); margin-bottom: 15px;"></p>
+                
+                <div class="quantity-control">
+                    <button class="qty-btn" onclick="alterarQuantidadeModal(-1)">-</button>
+                    <span class="qty-value" id="modalItemQty">1</span>
+                    <button class="qty-btn" onclick="alterarQuantidadeModal(1)">+</button>
+                </div>
+
+                <div class="addon-group" id="addonSection" style="display:none;">
+                    <h4>Deseja adicionar extras?</h4>
                     <div id="addonsList"></div>
                 </div>
             </div>
             <div class="modal-footer">
-                <div>Subtotal: <span class="price" id="modalTotalPrice">R$ 0,00</span></div>
+                <div>Total: <span class="price" id="modalTotalPrice">R$ 0,00</span></div>
                 <button class="btn" onclick="confirmAddToCart()">Adicionar ao Carrinho</button>
             </div>
         </div>
     </div>
 
+    <!-- Modal Checkout -->
     <div class="modal-overlay" id="checkoutModal">
         <div class="modal">
             <div class="modal-header">
@@ -124,17 +158,17 @@
                     <input type="text" id="clientName" placeholder="Ex: Carlos Silva">
                 </div>
                 <div class="form-group">
-                    <label>Seu WhatsApp:</label>
+                    <label>Seu WhatsApp com DDD:</label>
                     <input type="text" id="clientPhone" placeholder="Ex: (11) 98888-7777">
                 </div>
                 <div class="form-group">
-                    <label>Endereço de Entrega:</label>
-                    <input type="text" id="clientAddress" placeholder="Rua, Número, Bairro">
+                    <label>Endereço de Entrega Completo:</label>
+                    <input type="text" id="clientAddress" placeholder="Rua, Número, Bairro, Complemento">
                 </div>
             </div>
             <div class="modal-footer">
-                <div>Total Geral: <span class="price" id="checkoutTotal">R$ 0,00</span></div>
-                <button class="btn btn-success" onclick="enviarPedidoWhatsApp()">Enviar Nota Fiscal 📲</button>
+                <div>Total: <span class="price" id="checkoutTotal">R$ 0,00</span></div>
+                <button class="btn btn-success" onclick="enviarPedidoWhatsApp()">Enviar para WhatsApp 📲</button>
             </div>
         </div>
     </div>
@@ -144,77 +178,45 @@
     </div>
 
     <script>
+        // CONFIGURAÇÕES GLOBAIS DO PROJETO NOCODB DO CLIENTE
         const NOCODB_BASE_URL = "https://app.nocodb.com/api/v1/db/data/v1/pq15vouvhb05800";
         const NOCODB_TOKEN = "nc_pat_qPAlziW9D9nQIklvAOuOwuJiyV3jV6K5GfXvyBqZ";
 
-        const urlParams = new URLSearchParams(window.location.search);
-        const lojaSlug = urlParams.get('loja');
-
-        let dadosLicencaLojista = null;
-        let listaItensCliente = [];
+        let dadosLoja = { nome: "Cardápio Digital", whatsapp: "" };
+        let listaProdutos = [];
         let carrinho = [];
         let produtoSelecionado = null;
+        let quantidadeAtualModal = 1;
 
-        async function inicializarSistema() {
-            if (!lojaSlug) {
-                document.body.innerHTML = "<h2 style='text-align:center; margin-top:50px;'>Por favor, acesse utilizando o link fornecido pela loja (ex: ?loja=padaria).</h2>";
-                return;
-            }
-
+        async function inicializarLoja() {
             try {
-                // CORREÇÃO: Adicionadas aspas simples no valor da query string (slug,eq,'${lojaSlug}')
-                const urlBusca = `${NOCODB_BASE_URL}/clientes_licencas-clientes_licencas?where=(slug,eq,'${lojaSlug}')`;
-                console.log("Buscando loja em:", urlBusca);
-
-                const resMestre = await fetch(urlBusca, {
-                    headers: { 
-                        'xc-token': NOCODB_TOKEN,
-                        'Content-Type': 'application/json'
-                    }
+                // 1. Busca as configurações da loja direto da tabela 'config' do NocoDB
+                const resConfig = await fetch(`${NOCODB_BASE_URL}/config`, {
+                    headers: { 'xc-token': NOCODB_TOKEN }
                 });
-                
-                const jsonMestre = await resMestre.json();
-                console.log("Resposta do NocoDB:", jsonMestre);
-
-                if (!jsonMestre.list || jsonMestre.list.length === 0) {
-                    document.body.innerHTML = `<h2 style='text-align:center; margin-top:50px;'>Estabelecimento não encontrado (${lojaSlug}).</h2>`;
-                    return;
+                const dataConfig = await resConfig.json();
+                if (dataConfig.list && dataConfig.list.length > 0) {
+                    dadosLoja.nome = dataConfig.list[0].nome_loja || "Cardápio Digital";
+                    dadosLoja.whatsapp = dataConfig.list[0].whatsapp || "";
                 }
+                document.getElementById('shopTitle').innerText = dadosLoja.nome;
 
-                dadosLicencaLojista = jsonMestre.list[0];
-
-                if (dadosLicencaLojista.status_liberacao !== 'Ativo') {
-                    document.body.innerHTML = "<h2 style='text-align:center; margin-top:50px; color: red;'>Este cardápio está temporariamente indisponível.</h2>";
-                    return;
-                }
-
-                document.getElementById('shopTitle').innerText = dadosLicencaLojista.nome_loja;
-                document.getElementById('pageTitle').innerText = dadosLicencaLojista.nome_loja + " - Cardápio Digital";
-
-                const nomeTabelaExclusiva = dadosLicencaLojista.nome_da_tabela; 
-                console.log("Buscando produtos na tabela:", nomeTabelaExclusiva);
-
-                const resCliente = await fetch(`${NOCODB_BASE_URL}/${nomeTabelaExclusiva}`, {
-                    headers: { 
-                        'xc-token': NOCODB_TOKEN,
-                        'Content-Type': 'application/json'
-                    }
+                // 2. Busca os produtos direto da tabela 'produtos' do NocoDB
+                const resProdutos = await fetch(`${NOCODB_BASE_URL}/produtos`, {
+                    headers: { 'xc-token': NOCODB_TOKEN }
                 });
-                const jsonCliente = await resCliente.json();
-                listaItensCliente = jsonCliente.list || [];
+                const dataProdutos = await resProdutos.json();
+                listaProdutos = dataProdutos.list || [];
 
-                renderizarTela();
-
+                renderizarCardapio();
             } catch (error) {
-                console.error("Erro crítico ao carregar cardápio:", error);
-                document.body.innerHTML = "<h2 style='text-align:center; margin-top:50px;'>Erro ao carregar o cardápio. Verifique o console (F12).</h2>";
+                console.error("Erro ao carregar dados:", error);
+                document.getElementById('menuContainer').innerHTML = "<p style='text-align:center; color:red; margin-top:30px;'>Erro ao carregar o cardápio.</p>";
             }
         }
 
-        function renderizarTela() {
-            const produtos = listaItensCliente.filter(item => item.tipo === 'Produto' && item.disponivel !== false);
-            const banners = listaItensCliente.filter(item => item.tipo === 'Banner');
-
+        function renderizarCardapio() {
+            const banners = listaProdutos.filter(p => p.tipo === 'Banner' && p.disponivel !== false);
             if (banners.length > 0) {
                 document.getElementById('promoBannerSection').style.display = 'block';
                 document.getElementById('promoContainer').innerHTML = banners.map(b => `
@@ -222,77 +224,112 @@
                 `).join('');
             }
 
+            const itensCardapio = listaProdutos.filter(p => p.tipo === 'Produto' && p.disponivel !== false);
+            const categorias = [...new Set(itensCardapio.map(p => p.categoria || 'Outros'))];
+
             const container = document.getElementById('menuContainer');
-            container.innerHTML = `
-                <div class="category-section">
-                    <h2 class="section-title">🍔 Cardápio Principal</h2>
-                    <div class="grid">
-                        ${produtos.map(p => `
-                            <div class="card">
-                                <img src="${p.imagem ? p.imagem[0]?.url : 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=600&q=80'}" onclick="abrirZoom(this.src)">
-                                <div class="card-content">
-                                    <div class="card-title">${p.nome}</div>
-                                    <div class="card-desc">${p.descricao || ''}</div>
-                                </div>
-                                <div class="card-footer">
-                                    <span class="price">R$ ${Number(p.valor).toFixed(2)}</span>
-                                    <button class="btn" onclick="abrirModalProduto('${p.Id}')">Pedir</button>
-                                </div>
+            container.innerHTML = "";
+
+            categorias.forEach(cat => {
+                const produtosDaCat = itensCardapio.filter(p => (p.categoria || 'Outros') === cat);
+                
+                let htmlCat = `
+                    <div class="category-section">
+                        <h2 class="section-title">🍽️ ${cat}</h2>
+                        <div class="grid">
+                `;
+
+                produtosDaCat.forEach(p => {
+                    const imgUrl = p.imagem ? p.imagem[0]?.url : 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80';
+                    htmlCat += `
+                        <div class="card" onclick="abrirModalProduto('${p.Id}')">
+                            <img src="${imgUrl}">
+                            <div class="card-content">
+                                <div class="card-title">${p.nome}</div>
+                                <div class="card-desc">${p.descricao || 'Sem descrição.'}</div>
                             </div>
-                        `).join('')}
-                    </div>
-                </div>
-            `;
+                            <div class="card-footer">
+                                <span class="price">R$ ${Number(p.valor).toFixed(2)}</span>
+                                <button class="btn">Pedir</button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                htmlCat += `</div></div>`;
+                container.innerHTML += htmlCat;
+            });
         }
 
         function abrirModalProduto(id) {
-            produtoSelecionado = listaItensCliente.find(p => p.Id == id);
+            produtoSelecionado = listaProdutos.find(p => p.Id == id);
             if (!produtoSelecionado) return;
 
+            quantidadeAtualModal = 1;
+            document.getElementById('modalItemQty').innerText = 1;
             document.getElementById('modalProductName').innerText = produtoSelecionado.nome;
             document.getElementById('modalProductDesc').innerText = produtoSelecionado.descricao || '';
             document.getElementById('modalProductImg').src = produtoSelecionado.imagem ? produtoSelecionado.imagem[0]?.url : '';
 
-            const adicionais = listaItensCliente.filter(item => item.tipo === 'Adicional');
+            const adicionais = listaProdutos.filter(p => p.tipo === 'Adicional' && p.disponivel !== false);
+            const addonSection = document.getElementById('addonSection');
 
-            document.getElementById('addonsList').innerHTML = adicionais.map(a => `
-                <div class="addon-item">
-                    <label><input type="checkbox" value="${a.valor}" data-nome="${a.nome}" onchange="calcularSubmodal()"> ${a.nome}</label>
-                    <span>+ R$ ${Number(a.valor).toFixed(2)}</span>
-                </div>
-            `).join('');
+            if (adicionais.length > 0) {
+                addonSection.style.display = 'block';
+                document.getElementById('addonsList').innerHTML = adicionais.map(a => `
+                    <div class="addon-item">
+                        <label><input type="checkbox" value="${a.valor}" data-nome="${a.nome}" onchange="calcularSubtotalModal()"> ${a.nome}</label>
+                        <span style="font-weight:600; color:var(--primary);">+ R$ ${Number(a.valor).toFixed(2)}</span>
+                    </div>
+                `).join('');
+            } else {
+                addonSection.style.display = 'none';
+            }
 
-            calcularSubmodal();
+            calcularSubtotalModal();
             document.getElementById('productModal').style.display = 'flex';
         }
 
-        function calcularSubmodal() {
-            let total = Number(produtoSelecionado.valor);
-            document.querySelectorAll('#addonsList input:checked').forEach(cb => total += Number(cb.value));
+        function alterarQuantidadeModal(valor) {
+            quantidadeAtualModal += valor;
+            if (quantidadeAtualModal < 1) quantidadeAtualModal = 1;
+            document.getElementById('modalItemQty').innerText = quantidadeAtualModal;
+            calcularSubtotalModal();
+        }
+
+        function calcularSubtotalModal() {
+            let base = Number(produtoSelecionado.valor);
+            let extras = 0;
+            document.querySelectorAll('#addonsList input:checked').forEach(cb => {
+                extras += Number(cb.value);
+            });
+            let total = (base + extras) * quantidadeAtualModal;
             document.getElementById('modalTotalPrice').innerText = `R$ ${total.toFixed(2)}`;
         }
 
         function confirmAddToCart() {
-            const checks = document.querySelectorAll('#addonsList input:checked');
-            let extras = [];
-            let extraPreco = 0;
-            checks.forEach(c => {
-                extras.push(c.dataset.nome);
-                extraPreco += Number(c.value);
+            let extrasSelecionados = [];
+            let precoExtras = 0;
+            document.querySelectorAll('#addonsList input:checked').forEach(cb => {
+                extrasSelecionados.push(cb.dataset.nome);
+                precoExtras += Number(cb.value);
             });
+
+            let precoUnitarioFinal = Number(produtoSelecionado.valor) + precoExtras;
 
             carrinho.push({
                 nome: produtoSelecionado.nome,
-                precoBase: Number(produtoSelecionado.valor),
-                extras: extras,
-                subtotal: Number(produtoSelecionado.valor) + extraPreco
+                quantidade: quantidadeAtualModal,
+                precoUnitario: precoUnitarioFinal,
+                extras: extrasSelecionados,
+                subtotal: precoUnitarioFinal * quantidadeAtualModal
             });
 
             closeModal('productModal');
-            atualizarCarrinhoBarra();
+            atualizarBarraCarrinho();
         }
 
-        function atualizarCarrinhoBarra() {
+        function atualizarBarraCarrinho() {
             const bar = document.getElementById('cartBar');
             if (carrinho.length === 0) {
                 bar.style.display = 'none';
@@ -300,7 +337,8 @@
             }
             bar.style.display = 'flex';
             let totalGeral = carrinho.reduce((sum, item) => sum + item.subtotal, 0);
-            document.getElementById('cartSummary').innerText = `${carrinho.length} item(ns) | Total: R$ ${totalGeral.toFixed(2)}`;
+            let qtdItens = carrinho.reduce((sum, item) => sum + item.quantidade, 0);
+            document.getElementById('cartSummary').innerText = `${qtdItens} item(ns) | Total: R$ ${totalGeral.toFixed(2)}`;
         }
 
         function openCheckoutModal() {
@@ -318,32 +356,39 @@
             const endereco = document.getElementById('clientAddress').value;
 
             if (!nome || !telefone || !endereco) {
-                alert("Preencha todos os dados de entrega!");
+                alert("Por favor, preencha todos os campos de entrega!");
                 return;
             }
 
-            let texto = `🛒 *PEDIDO - ${dadosLicencaLojista.nome_loja}* 🧾\n\n`;
+            if (!dadosLoja.whatsapp) {
+                alert("O número de WhatsApp da loja não foi configurado na tabela 'config' do NocoDB.");
+                return;
+            }
+
+            let texto = `🛒 *NOVO PEDIDO - ${dadosLoja.nome}* 🧾\n\n`;
             texto += `👤 *Cliente:* ${nome}\n`;
-            texto += `📞 *Tel:* ${telefone}\n`;
+            texto += `📞 *WhatsApp:* ${telefone}\n`;
             texto += `📍 *Endereço:* ${endereco}\n\n`;
             texto += `----------------------------------------\n`;
 
-            let total = 0;
+            let totalGeral = 0;
             carrinho.forEach((i, idx) => {
-                texto += `${idx + 1}. *${i.nome}* - R$ ${i.subtotal.toFixed(2)}\n`;
-                if (i.extras.length > 0) texto += `   _Adicionais: ${i.extras.join(', ')}_\n`;
-                total += i.subtotal;
+                texto += `${idx + 1}. *${i.quantidade}x ${i.nome}* - R$ ${i.subtotal.toFixed(2)}\n`;
+                if (i.extras.length > 0) {
+                    texto += `   _Extras: ${i.extras.join(', ')}_\n`;
+                }
+                totalGeral += i.subtotal;
             });
 
             texto += `----------------------------------------\n`;
-            texto += `💰 *TOTAL GERAL: R$ ${total.toFixed(2)}*\n\n`;
-            texto += `_Pedido gerado via Cardápio Digital_`;
+            texto += `💰 *TOTAL A PAGAR: R$ ${totalGeral.toFixed(2)}*\n\n`;
+            texto += `_Pedido gerado automaticamente pelo cardápio._`;
 
-            const url = `https://wa.me/${dadosLicencaLojista.whatsapp_vendedor}?text=${encodeURIComponent(texto)}`;
+            const url = `https://wa.me/${dadosLoja.whatsapp}?text=${encodeURIComponent(texto)}`;
             window.open(url, '_blank');
         }
 
-        inicializarSistema();
+        inicializarLoja();
     </script>
 </body>
 </html>
