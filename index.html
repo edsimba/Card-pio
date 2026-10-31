@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title id="pageTitle">Carregando Cardápio...</title>
+    <title id="pageTitle">Cardápio Digital</title>
     <style>
         :root {
             --primary: #ff4757;
@@ -28,6 +28,7 @@
             margin-bottom: 30px;
             text-align: center;
             box-shadow: 0 4px 15px rgba(238, 82, 83, 0.3);
+            display: none;
         }
         .promo-images { display: flex; gap: 10px; justify-content: center; margin-top: 15px; flex-wrap: wrap; }
         .promo-images img { width: 140px; height: 90px; object-fit: cover; border-radius: 8px; cursor: pointer; }
@@ -50,7 +51,7 @@
         .btn-success { background: var(--success); }
         .btn-success:hover { background: #26af5f; }
 
-        /* Carrinho Flutuante */
+        /* Barra do Carrinho */
         .cart-bar { position: fixed; bottom: 0; left: 0; width: 100%; background: var(--dark); color: white; padding: 15px 20px; display: none; justify-content: space-between; align-items: center; z-index: 900; box-shadow: 0 -4px 10px rgba(0,0,0,0.2); }
         .cart-info { font-size: 1.1rem; font-weight: bold; }
 
@@ -77,12 +78,12 @@
 
     <header>
         <h1 id="shopTitle">Carregando...</h1>
-        <p>Cardápio Digital Inteligente</p>
+        <p>Cardápio Digital</p>
     </header>
 
     <div class="container">
-        <div class="promo-banner" id="promoBannerSection" style="display:none;">
-            <h2>🔥 Destaques da Loja 🔥</h2>
+        <div class="promo-banner" id="promoBannerSection">
+            <h2>🔥 Destaques e Promoções 🔥</h2>
             <div class="promo-images" id="promoContainer"></div>
         </div>
 
@@ -125,8 +126,8 @@
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label>Seu Nome:</label>
-                    <input type="text" id="clientName" placeholder="Ex: Maria Souza">
+                    <label>Seu Nome Completo:</label>
+                    <input type="text" id="clientName" placeholder="Ex: Carlos Silva">
                 </div>
                 <div class="form-group">
                     <label>Seu WhatsApp:</label>
@@ -138,7 +139,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <div>Total: <span class="price" id="checkoutTotal">R$ 0,00</span></div>
+                <div>Total Geral: <span class="price" id="checkoutTotal">R$ 0,00</span></div>
                 <button class="btn btn-success" onclick="enviarPedidoWhatsApp()">Enviar Nota Fiscal 📲</button>
             </div>
         </div>
@@ -149,73 +150,86 @@
     </div>
 
     <script>
-        // CONFIGURAÇÕES DA API DO NOCODB
-        const NOCODB_URL = "https://app.nocodb.com/api/v1/db/data/v1/p_seu_projeto_id";
+        // ENDEREÇO BASE DO SEU NOCODB
+        const NOCODB_BASE_URL = "https://app.nocodb.com/api/v1/db/data/v1/p_SEU_PROJETO_ID";
         const NOCODB_TOKEN = "SEU_TOKEN_DE_API_DO_NOCODB";
 
-        // Pegar o slug da loja direto da URL (Ex: meudominio.com/?loja=burger-house)
+        // Captura o slug da loja direto da URL (Ex: meucardapio.vercel.app/?loja=joao)
         const urlParams = new URLSearchParams(window.location.search);
         const lojaSlug = urlParams.get('loja');
 
-        let dadosLoja = null;
+        let dadosLicencaLojista = null;
+        let listaItensCliente = [];
         let carrinho = [];
         let produtoSelecionado = null;
-        let listaProdutosGlobal = [];
-        let listaAdicionaisGlobal = [];
 
-        async function carregarDadosDaLoja() {
+        async function inicializarSistema() {
             if (!lojaSlug) {
-                document.body.innerHTML = "<h2 style='text-align:center; margin-top:50px;'>Loja não encontrada. Verifique o link acessado.</h2>";
+                document.body.innerHTML = "<h2 style='text-align:center; margin-top:50px;'>Por favor, acesse utilizando o link fornecido pela loja.</h2>";
                 return;
             }
 
             try {
-                // 1. Buscar dados do lojista na tabela 'configuracoes_loja' filtrando pelo slug
-                const resConfig = await fetch(`${NOCODB_URL}/configuracoes_loja?where=(slug,eq,${lojaSlug})`, {
+                // 1. O código consulta a Tabela Mestre 'clientes_licencas'
+                const resMestre = await fetch(`${NOCODB_BASE_URL}/clientes_licencas?where=(slug,eq,${lojaSlug})`, {
                     headers: { 'xc-token': NOCODB_TOKEN }
                 });
-                const jsonConfig = await resConfig.json();
-                
-                if (!jsonConfig.list || jsonConfig.list.length === 0) {
-                    document.body.innerHTML = "<h2 style='text-align:center; margin-top:50px;'>Esta loja não está ativa ou não existe.</h2>";
+                const jsonMestre = await resMestre.json();
+
+                if (!jsonMestre.list || jsonMestre.list.length === 0) {
+                    document.body.innerHTML = "<h2 style='text-align:center; margin-top:50px;'>Estabelecimento não encontrado.</h2>";
                     return;
                 }
 
-                dadosLoja = jsonConfig.list[0];
-                document.getElementById('shopTitle').innerText = dadosLoja.nome_loja;
-                document.getElementById('pageTitle').innerText = dadosLoja.nome_loja + " - Cardápio";
+                dadosLicencaLojista = jsonMestre.list[0];
 
-                // 2. Buscar Produtos e Adicionais filtrados pelo slug da loja
-                const resProd = await fetch(`${NOCODB_URL}/produtos?where=(loja_slug,eq,${lojaSlug})`, {
+                // 2. Valida se a licença está ATIVA (Controle de Mensalidade)
+                if (dadosLicencaLojista.status_liberacao !== 'Ativo') {
+                    document.body.innerHTML = "<h2 style='text-align:center; margin-top:50px; color: red;'>Este cardápio está temporariamente indisponível. Entre em contato com a loja.</h2>";
+                    return;
+                }
+
+                document.getElementById('shopTitle').innerText = dadosLicencaLojista.nome_loja;
+                document.getElementById('pageTitle').innerText = dadosLicencaLojista.nome_loja + " - Cardápio Digital";
+
+                // 3. A MÁGICA ACONTECE AQUI: O código busca DINAMICAMENTE na tabela exclusiva do cliente
+                const nomeTabelaExclusiva = dadosLicencaLojista.nome_da_tabela; // Ex: "cardapio_joao"
+
+                const resCliente = await fetch(`${NOCODB_BASE_URL}/${nomeTabelaExclusiva}`, {
                     headers: { 'xc-token': NOCODB_TOKEN }
                 });
-                const jsonProd = await resProd.json();
-                listaProdutosGlobal = jsonProd.list || [];
+                const jsonCliente = await resCliente.json();
+                listaItensCliente = jsonCliente.list || [];
 
-                const resAdd = await fetch(`${NOCODB_URL}/adicionais?where=(loja_slug,eq,${lojaSlug})`, {
-                    headers: { 'xc-token': NOCODB_TOKEN }
-                });
-                const jsonAdd = await resAdd.json();
-                listaAdicionaisGlobal = jsonAdd.list || [];
-
-                // Renderizar cardápio na tela
-                renderizarCardapio();
+                // Renderizar Cardápio e Banners
+                renderizarTela();
 
             } catch (error) {
-                console.error("Erro ao carregar dados do NocoDB:", error);
-                alert("Erro ao conectar com o banco de dados.");
+                console.error("Erro ao carregar cardápio:", error);
+                document.body.innerHTML = "<h2 style='text-align:center; margin-top:50px;'>Erro ao carregar o cardápio. Tente novamente mais tarde.</h2>";
             }
         }
 
-        function renderizarCardapio() {
+        function renderizarTela() {
+            // Filtrar Produtos, Adicionais e Banners da tabela do cliente
+            const produtos = listaItensCliente.filter(item => item.tipo === 'Produto' && item.disponivel !== false);
+            const banners = listaItensCliente.filter(item => item.tipo === 'Banner');
+
+            // Renderizar Banners se existirem
+            if (banners.length > 0) {
+                document.getElementById('promoBannerSection').style.display = 'block';
+                document.getElementById('promoContainer').innerHTML = banners.map(b => `
+                    <img src="${b.imagem ? b.imagem[0]?.url : ''}" onclick="abrirZoom(this.src)">
+                `).join('');
+            }
+
+            // Agrupar e Renderizar Produtos
             const container = document.getElementById('menuContainer');
-            
-            // Agrupar produtos simples por categoria ou exibir direto
             container.innerHTML = `
                 <div class="category-section">
-                    <h2 class="section-title">🍔 Cardápio Disponível</h2>
+                    <h2 class="section-title">🍔 Cardápio Principal</h2>
                     <div class="grid">
-                        ${listaProdutosGlobal.map(p => `
+                        ${produtos.map(p => `
                             <div class="card">
                                 <img src="${p.imagem ? p.imagem[0]?.url : 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=600&q=80'}" onclick="abrirZoom(this.src)">
                                 <div class="card-content">
@@ -223,7 +237,7 @@
                                     <div class="card-desc">${p.descricao || ''}</div>
                                 </div>
                                 <div class="card-footer">
-                                    <span class="price">R$ ${Number(p.preco).toFixed(2)}</span>
+                                    <span class="price">R$ ${Number(p.valor).toFixed(2)}</span>
                                     <button class="btn" onclick="abrirModalProduto('${p.Id}')">Pedir</button>
                                 </div>
                             </div>
@@ -234,17 +248,20 @@
         }
 
         function abrirModalProduto(id) {
-            produtoSelecionado = listaProdutosGlobal.find(p => p.Id == id);
+            produtoSelecionado = listaItensCliente.find(p => p.Id == id);
             if (!produtoSelecionado) return;
 
             document.getElementById('modalProductName').innerText = produtoSelecionado.nome;
             document.getElementById('modalProductDesc').innerText = produtoSelecionado.descricao || '';
             document.getElementById('modalProductImg').src = produtoSelecionado.imagem ? produtoSelecionado.imagem[0]?.url : '';
 
-            document.getElementById('addonsList').innerHTML = listaAdicionaisGlobal.map(a => `
+            // Buscar adicionais cadastrados na tabela dele
+            const adicionais = listaItensCliente.filter(item => item.tipo === 'Adicional');
+
+            document.getElementById('addonsList').innerHTML = adicionais.map(a => `
                 <div class="addon-item">
-                    <label><input type="checkbox" value="${a.preco}" data-nome="${a.nome}" onchange="calcularSubmodal()"> ${a.nome}</label>
-                    <span>+ R$ ${Number(a.preco).toFixed(2)}</span>
+                    <label><input type="checkbox" value="${a.valor}" data-nome="${a.nome}" onchange="calcularSubmodal()"> ${a.nome}</label>
+                    <span>+ R$ ${Number(a.valor).toFixed(2)}</span>
                 </div>
             `).join('');
 
@@ -253,7 +270,7 @@
         }
 
         function calcularSubmodal() {
-            let total = Number(produtoSelecionado.preco);
+            let total = Number(produtoSelecionado.valor);
             document.querySelectorAll('#addonsList input:checked').forEach(cb => total += Number(cb.value));
             document.getElementById('modalTotalPrice').innerText = `R$ ${total.toFixed(2)}`;
         }
@@ -269,9 +286,9 @@
 
             carrinho.push({
                 nome: produtoSelecionado.nome,
-                precoBase: Number(produtoSelecionado.preco),
+                precoBase: Number(produtoSelecionado.valor),
                 extras: extras,
-                subtotal: Number(produtoSelecionado.preco) + extraPreco
+                subtotal: Number(produtoSelecionado.valor) + extraPreco
             });
 
             closeModal('productModal');
@@ -298,18 +315,18 @@
         function closeModal(id) { document.getElementById(id).style.display = 'none'; }
         function abrirZoom(src) { document.getElementById('zoomImg').src = src; document.getElementById('zoomModal').style.display = 'flex'; }
 
-        // ENVIAR NOTA FISCAL PARA O WHATSAPP DO LOJISTA CORRETO
+        // GERAR E ENVIAR NOTA FISCAL PARA O WHATSAPP
         function enviarPedidoWhatsApp() {
             const nome = document.getElementById('clientName').value;
             const telefone = document.getElementById('clientPhone').value;
             const endereco = document.getElementById('clientAddress').value;
 
             if (!nome || !telefone || !endereco) {
-                alert("Preencha todos os campos de entrega!");
+                alert("Preencha todos os dados de entrega!");
                 return;
             }
 
-            let texto = `🛒 *PEDIDO - ${dadosLoja.nome_loja}* 🧾\n\n`;
+            let texto = `🛒 *PEDIDO - ${dadosLicencaLojista.nome_loja}* 🧾\n\n`;
             texto += `👤 *Cliente:* ${nome}\n`;
             texto += `📞 *Tel:* ${telefone}\n`;
             texto += `📍 *Endereço:* ${endereco}\n\n`;
@@ -323,15 +340,15 @@
             });
 
             texto += `----------------------------------------\n`;
-            texto += `💰 *TOTAL: R$ ${total.toFixed(2)}*\n\n`;
-            texto += `_Gerado via Cardápio Digital_`;
+            texto += `💰 *TOTAL GERAL: R$ ${total.toFixed(2)}*\n\n`;
+            texto += `_Pedido gerado via Cardápio Digital_`;
 
-            const url = `https://wa.me/${dadosLoja.whatsapp_vendedor}?text=${encodeURIComponent(texto)}`;
+            const url = `https://wa.me/${dadosLicencaLojista.whatsapp_vendedor}?text=${encodeURIComponent(texto)}`;
             window.open(url, '_blank');
         }
 
-        // Executar ao carregar a página
-        carregarDadosDaLoja();
+        // Iniciar
+        inicializarSistema();
     </script>
 </body>
 </html>
