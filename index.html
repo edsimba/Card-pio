@@ -117,7 +117,7 @@
                 </button>
             </div>
 
-            <div class="p-4 overflow-y-auto space-y-6 flex-1" id="corpo-carrinho">
+            <div class="p-4 overflow-y-auto space-y-6 flex-1 scroll-smooth" id="corpo-carrinho">
                 <div>
                     <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Itens selecionados</h3>
                     <div id="lista-itens-carrinho" class="space-y-3">
@@ -165,11 +165,11 @@
                         </select>
                     </div>
 
-                    <!-- Campo Condicional: Troco para Dinheiro -->
-                    <div id="campo-troco-container" class="hidden bg-amber-50 p-3 rounded-xl border border-amber-200">
-                        <label class="block text-xs font-medium text-amber-900 mb-1">Troco para quanto?</label>
-                        <input type="text" id="cliente-troco" placeholder="Ex: Troco para R$ 50,00 (ou 'Não preciso')" class="w-full px-3 py-2 bg-white border border-amber-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
-                        <p class="text-[11px] text-amber-700 mt-1">Se não precisar de troco, pode deixar em branco.</p>
+                    <!-- Campo Condicional: Troco para Dinheiro (com rolagem automática) -->
+                    <div id="campo-troco-container" class="hidden bg-amber-50 p-3.5 rounded-xl border border-amber-300 transition-all duration-300 shadow-sm">
+                        <label class="block text-xs font-bold text-amber-900 mb-1">Troco para quanto?</label>
+                        <input type="text" id="cliente-troco" placeholder="Ex: Troco para R$ 50,00 (ou deixe em branco se não precisar)" class="w-full px-3 py-2.5 bg-white border border-amber-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium">
+                        <p class="text-[11px] text-amber-700 mt-1">Se não precisar de troco, basta deixar em branco.</p>
                     </div>
                 </form>
             </div>
@@ -201,14 +201,22 @@
             if (window.lucide) lucide.createIcons();
         });
 
+        // Rola automaticamente para o campo de troco ao selecionar "Dinheiro"
         function verificarFormaPagamento() {
             const pagamento = document.getElementById("cliente-pagamento").value;
             const containerTroco = document.getElementById("campo-troco-container");
+            const campoInputTroco = document.getElementById("cliente-troco");
+
             if (pagamento === "Dinheiro") {
                 containerTroco.classList.remove("hidden");
+                // Aguarda o elemento renderizar e rola suavemente até ele
+                setTimeout(() => {
+                    containerTroco.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    campoInputTroco.focus();
+                }, 120);
             } else {
                 containerTroco.classList.add("hidden");
-                document.getElementById("cliente-troco").value = "";
+                campoInputTroco.value = "";
             }
         }
 
@@ -300,7 +308,6 @@
                 categorias.push('promocoes');
             }
 
-            // Exibe categorias normais para itens que NÃO estão em promoção
             const categoriasNormais = [...new Set(
                 produtosGlobal
                     .filter(p => !p.em_promocao)
@@ -324,7 +331,6 @@
                 `;
             }).join('');
 
-            // Se for promoção lista os itens em promoção; senão oculta itens em promoção da categoria
             let produtosFiltrados = [];
             if (categoriaAtiva === 'promocoes') {
                 produtosFiltrados = produtosGlobal.filter(p => p.em_promocao);
@@ -473,7 +479,6 @@
             document.getElementById("modal-carrinho").classList.add("hidden");
         }
 
-        // Obtém localização e busca automaticamente o endereço
         function obterLocalizacaoGPS() {
             const statusGps = document.getElementById("status-gps");
             const campoEndereco = document.getElementById("cliente-endereco");
@@ -495,7 +500,6 @@
                     
                     document.getElementById("cliente-link-maps").value = linkMaps;
 
-                    // Busca o nome legível da rua via OpenStreetMap
                     try {
                         const controller = new AbortController();
                         const timeoutId = setTimeout(() => controller.abort(), 4000);
