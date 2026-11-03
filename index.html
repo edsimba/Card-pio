@@ -28,13 +28,14 @@
 </head>
 <body class="bg-gray-50 text-gray-800 pb-24 min-h-screen">
 
-    <!-- Configuração do NocoDB e WhatsApp -->
+    <!-- Configuração das Tabelas do NocoDB -->
     <script>
         const CONFIG = {
             TELEFONE_WHATSAPP: "5511994405587",
             NOCODB_URL: "https://app.nocodb.com",
             NOCODB_TOKEN: "nc_pat_jVqZTXeazMNQzyGNVkqfAhLFy8JmjRrMkWKrFhY1", 
-            NOCODB_TABLE_PATH: "/api/v2/tables/m1jw9252lt7vz5m/records"
+            NOCODB_TABLE_PATH: "/api/v2/tables/m1jw9252lt7vz5m/records",         // Tabela 1: Produtos
+            NOCODB_ADICIONAIS_PATH: "/api/v2/tables/mahntftcea8z5hj/records"     // Tabela 2: Adicionais
         };
     </script>
 
@@ -82,7 +83,7 @@
         </button>
     </div>
 
-    <!-- Modal: Personalização do Lanche -->
+    <!-- Modal: Detalhes e Personalização -->
     <div id="modal-personalizacao" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden" onclick="fecharModalPersonalizacao()">
         <div class="bg-white rounded-2xl overflow-hidden max-w-md w-full max-h-[90vh] flex flex-col shadow-2xl" onclick="event.stopPropagation()">
             <div class="relative bg-black shrink-0">
@@ -102,7 +103,7 @@
                     <p id="modal-prod-preco-base" class="text-lg font-extrabold text-amber-600 mt-2"></p>
                 </div>
 
-                <!-- Seção Adicionais Pagos (coluna do NocoDB) -->
+                <!-- Adicionais (vindos da Tabela 2) -->
                 <div id="secao-adicionais" class="hidden border-t pt-4">
                     <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1">
                         <i data-lucide="plus-circle" class="w-4 h-4 text-green-600"></i> Adicionais
@@ -110,7 +111,7 @@
                     <div id="lista-adicionais" class="space-y-2"></div>
                 </div>
 
-                <!-- Seção Remoções Automáticas (extraídas da descrição) -->
+                <!-- Remoções (da descrição) -->
                 <div id="secao-remocoes" class="hidden border-t pt-4">
                     <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1">
                         <i data-lucide="minus-circle" class="w-4 h-4 text-red-500"></i> Deseja retirar algum ingrediente? (Sem custo)
@@ -118,8 +119,8 @@
                     <div id="lista-remocoes" class="grid grid-cols-2 gap-2"></div>
                 </div>
 
-                <!-- Observações -->
-                <div class="border-t pt-4">
+                <!-- Observação (oculta automaticamente para bebidas/refrigerantes) -->
+                <div id="secao-observacoes" class="border-t pt-4">
                     <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 flex items-center gap-1">
                         <i data-lucide="message-square" class="w-4 h-4 text-amber-600"></i> Alguma observação?
                     </label>
@@ -223,6 +224,7 @@
     <!-- Script de Operação -->
     <script>
         let produtosGlobal = [];
+        let adicionaisGlobaisTabela = [];
         let carrinho = [];
         let categoriaAtiva = '';
         let infoLoja = { nome: "Lanchonete & Hamburgueria", logo: null };
@@ -231,47 +233,33 @@
         let qtdModal = 1;
 
         document.addEventListener("DOMContentLoaded", () => {
-            carregarProdutos();
+            carregarTudo();
             if (window.lucide) lucide.createIcons();
         });
 
-        // Identifica se a categoria do produto pertence à categoria de lanches/hambúrgueres
+        // Identifica categoria de lanches
         function ehCategoriaLanche(categoria) {
             if (!categoria) return false;
             const cat = categoria.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
             return cat.includes('lanche') || cat.includes('hamburg') || cat.includes('burger') || cat.includes('sandu') || cat.includes('artesanal');
         }
 
-        // Extrai automaticamente os ingredientes da descrição apenas dividindo por vírgulas e "e"
+        // Identifica categoria de bebidas/refrigerantes
+        function ehCategoriaBebida(categoria) {
+            if (!categoria) return false;
+            const cat = categoria.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            return cat.includes('refrigerante') || cat.includes('refri') || cat.includes('bebida') || cat.includes('suco') || cat.includes('agua') || cat.includes('cerveja') || cat.includes('drink');
+        }
+
+        // Extrai ingredientes da descrição para remoção automática
         function extrairIngredientesDaDescricao(descricao) {
             if (!descricao || typeof descricao !== 'string') return [];
-            
-            // Remove ponto final e substitui ' e ' ou ' & ' por vírgula
             let texto = descricao.trim().replace(/\.$/, '');
             texto = texto.replace(/\s+(e|&)\s+/gi, ', ');
-
-            // Separa por vírgulas, pontos e vírgulas ou barras
             const itens = texto.split(/[,;\/•\n]+/)
                 .map(i => i.trim())
                 .filter(i => i.length >= 2 && i.length <= 40);
-
-            // Deixa a primeira letra maiúscula para ficar bonito
             return itens.map(i => i.charAt(0).toUpperCase() + i.slice(1));
-        }
-
-        // Lê os adicionais da coluna NocoDB (ex: "Carne: 6.00, Ovo: 2.50")
-        function parseAdicionais(str) {
-            if (!str || typeof str !== 'string') return [];
-            return str.split(/[\n,]+/).map((item, idx) => {
-                const partes = item.split(/[:\-=]/);
-                if (partes.length >= 2) {
-                    const nome = partes[0].trim();
-                    const precoLimpo = partes.slice(1).join('').replace(/[^\d.,]/g, '').replace(',', '.');
-                    const preco = parseFloat(precoLimpo) || 0;
-                    return { id: idx, nome, preco };
-                }
-                return null;
-            }).filter(Boolean);
         }
 
         function verificarFormaPagamento() {
@@ -352,23 +340,41 @@
             }
         }
 
-        async function carregarProdutos() {
+        // Carrega produtos da Tabela 1 e adicionais da Tabela 2 simultaneamente
+        async function carregarTudo() {
             const containerProdutos = document.getElementById("container-produtos");
 
             try {
-                const urlCompleta = `${CONFIG.NOCODB_URL}${CONFIG.NOCODB_TABLE_PATH}`;
-                const response = await fetch(urlCompleta, {
-                    method: "GET",
-                    headers: {
-                        "xc-token": CONFIG.NOCODB_TOKEN,
-                        "Content-Type": "application/json"
-                    }
-                });
+                const headers = {
+                    "xc-token": CONFIG.NOCODB_TOKEN,
+                    "Content-Type": "application/json"
+                };
 
-                if (!response.ok) throw new Error("Status " + response.status + ": " + (await response.text()));
+                const [resProdutos, resAdicionais] = await Promise.all([
+                    fetch(`${CONFIG.NOCODB_URL}${CONFIG.NOCODB_TABLE_PATH}`, { method: "GET", headers }),
+                    fetch(`${CONFIG.NOCODB_URL}${CONFIG.NOCODB_ADICIONAIS_PATH}`, { method: "GET", headers }).catch(e => null)
+                ]);
 
-                const data = await response.json();
-                const listaBruta = Array.isArray(data) ? data : (data.list || data.data || []);
+                if (!resProdutos.ok) throw new Error("Status " + resProdutos.status + ": " + (await resProdutos.text()));
+
+                // Processa Tabela 2 (Adicionais)
+                if (resAdicionais && resAdicionais.ok) {
+                    const dataAdic = await resAdicionais.json();
+                    const listaAdic = Array.isArray(dataAdic) ? dataAdic : (dataAdic.list || dataAdic.data || []);
+                    adicionaisGlobaisTabela = listaAdic.map((item, idx) => {
+                        const nome = item.nome ?? item.Nome ?? item.titulo ?? item.Titulo ?? item.adicional ?? item.Adicional ?? item.item ?? item.Item ?? item.title;
+                        if (!nome) return null;
+                        const valorBruto = item.valor ?? item.Valor ?? item.preco ?? item.Preco ?? item.price ?? item.Price ?? 0;
+                        const preco = typeof valorBruto === 'number' 
+                            ? valorBruto 
+                            : (parseFloat(String(valorBruto).replace(/[^\d.,]/g, '').replace(',', '.')) || 0);
+                        return { id: idx, nome: String(nome).trim(), preco };
+                    }).filter(Boolean);
+                }
+
+                // Processa Tabela 1 (Produtos)
+                const dataProd = await resProdutos.json();
+                const listaBruta = Array.isArray(dataProd) ? dataProd : (dataProd.list || dataProd.data || []);
 
                 for (const item of listaBruta) {
                     const nome = item.nome_loja || item.Nome_Loja || item.loja_nome;
@@ -400,12 +406,13 @@
                     const categoria = p.categoria ?? p.Categoria ?? p.Category ?? 'Geral';
                     const emPromo = p.em_promocao === true || p.em_promocao === 'true' || p.em_promocao === 1 || p.Promocao === true;
 
-                    // 1. Adicionais vêm da coluna do NocoDB
-                    const adicionaisBrutos = p.adicionais ?? p.Adicionais ?? p.extras ?? '';
-
-                    // 2. Remoções são extraídas AUTOMATICAMENTE da descrição se for da categoria de lanches
                     const ehLanche = ehCategoriaLanche(categoria);
-                    const remocoesExtraidas = ehLanche ? extrairIngredientesDaDescricao(descricao) : [];
+                    
+                    // Lanches puxam automaticamente os adicionais da Tabela 2
+                    const adicionais = ehLanche ? adicionaisGlobaisTabela : [];
+                    
+                    // Lanches extraem automaticamente remoções da descrição
+                    const remocoes = ehLanche ? extrairIngredientesDaDescricao(descricao) : [];
 
                     return {
                         id,
@@ -415,8 +422,8 @@
                         categoria,
                         em_promocao: emPromo,
                         imagem_url: extrairImagemUrl(encontrarCampoImagem(p)),
-                        adicionais: parseAdicionais(adicionaisBrutos),
-                        remocoes: remocoesExtraidas
+                        adicionais: adicionais,
+                        remocoes: remocoes
                     };
                 });
 
@@ -436,7 +443,7 @@
                     <div class="bg-red-50 border border-red-200 p-4 rounded-xl text-left space-y-2">
                         <p class="text-sm font-bold text-red-700 flex items-center gap-1">❌ Erro de Conexão com NocoDB</p>
                         <p class="text-xs text-red-600 font-mono bg-red-100 p-2 rounded break-all">${error.message}</p>
-                        <button onclick="carregarProdutos()" class="w-full mt-2 bg-red-600 text-white text-xs font-bold py-2 rounded-lg">Tentar Novamente</button>
+                        <button onclick="carregarTudo()" class="w-full mt-2 bg-red-600 text-white text-xs font-bold py-2 rounded-lg">Tentar Novamente</button>
                     </div>`;
             }
         }
@@ -497,7 +504,7 @@
                                 <span class="font-extrabold text-amber-600 text-sm">R$ ${prod.preco.toFixed(2).replace('.', ',')}</span>
                                 ${prod.em_promocao ? `<span class="bg-red-100 text-red-700 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5">🔥 Promo</span>` : ''}
                             </div>
-                            <button onclick="abrirModalPersonalizacao('${prod.id}')" class="bg-amber-100 text-amber-800 hover:bg-amber-600 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1">
+                            <button onclick="cliqueAdicionarCard('${prod.id}')" class="bg-amber-100 text-amber-800 hover:bg-amber-600 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1">
                                 <i data-lucide="plus" class="w-3.5 h-3.5"></i> Adicionar
                             </button>
                         </div>
@@ -511,6 +518,42 @@
         function filtrarCategoria(cat) {
             categoriaAtiva = cat;
             renderizarInterface();
+        }
+
+        // Se for refrigerante/bebida, adiciona direto sem burocracia; se for lanche, abre a personalização
+        function cliqueAdicionarCard(idProduto) {
+            const produto = produtosGlobal.find(p => String(p.id) === String(idProduto));
+            if (!produto) return;
+
+            const ehBebida = ehCategoriaBebida(produto.categoria);
+            const temAdicionais = produto.adicionais && produto.adicionais.length > 0;
+            const temRemocoes = produto.remocoes && produto.remocoes.length > 0;
+
+            if (ehBebida && !temAdicionais && !temRemocoes) {
+                adicionarDiretoCarrinho(produto);
+            } else {
+                abrirModalPersonalizacao(idProduto);
+            }
+        }
+
+        function adicionarDiretoCarrinho(produto) {
+            const itemExistente = carrinho.find(item => item.id === produto.id && item.adicionais.length === 0 && item.remocoes.length === 0 && !item.observacao);
+            if (itemExistente) {
+                itemExistente.quantidade++;
+            } else {
+                carrinho.push({
+                    cartId: `${produto.id}-${Date.now()}-${Math.random()}`,
+                    id: produto.id,
+                    titulo: produto.titulo,
+                    precoBase: produto.preco,
+                    precoUnitario: produto.preco,
+                    quantidade: 1,
+                    adicionais: [],
+                    remocoes: [],
+                    observacao: ""
+                });
+            }
+            atualizarCarrinhoUI();
         }
 
         function abrirModalPersonalizacao(idProduto) {
@@ -531,7 +574,7 @@
             if (produto.em_promocao) badgePromo.classList.remove("hidden");
             else badgePromo.classList.add("hidden");
 
-            // 1. Adicionais (da tabela)
+            // 1. Adicionais (Tabela 2)
             const secaoAdicionais = document.getElementById("secao-adicionais");
             const listaAdicionais = document.getElementById("lista-adicionais");
             if (produto.adicionais && produto.adicionais.length > 0) {
@@ -550,7 +593,7 @@
                 listaAdicionais.innerHTML = '';
             }
 
-            // 2. Remoções (automáticas da descrição para lanches)
+            // 2. Remoções
             const secaoRemocoes = document.getElementById("secao-remocoes");
             const listaRemocoes = document.getElementById("lista-remocoes");
             if (produto.remocoes && produto.remocoes.length > 0) {
@@ -564,6 +607,14 @@
             } else {
                 secaoRemocoes.classList.add("hidden");
                 listaRemocoes.innerHTML = '';
+            }
+
+            // 3. Regra de Observações: Oculta para refrigerantes/bebidas
+            const secaoObs = document.getElementById("secao-observacoes");
+            if (ehCategoriaBebida(produto.categoria)) {
+                secaoObs.classList.add("hidden");
+            } else {
+                secaoObs.classList.remove("hidden");
             }
 
             recalcularTotalModal();
@@ -814,21 +865,18 @@
                 const subtotalItem = (item.precoUnitario * item.quantidade).toFixed(2).replace('.', ',');
                 mensagem += `▪️ ${item.quantidade}x *${item.titulo}*\n`;
                 
-                // Adicionais
                 if (item.adicionais && item.adicionais.length > 0) {
                     item.adicionais.forEach(a => {
                         mensagem += `   ├ (+) ${a.nome} (+R$ ${a.preco.toFixed(2).replace('.', ',')})\n`;
                     });
                 }
 
-                // Remoções automáticas
                 if (item.remocoes && item.remocoes.length > 0) {
                     item.remocoes.forEach(r => {
                         mensagem += `   ├ (-) Sem ${r}\n`;
                     });
                 }
 
-                // Observação
                 if (item.observacao) {
                     mensagem += `   ├ 📝 Obs: ${item.observacao}\n`;
                 }
