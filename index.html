@@ -28,13 +28,13 @@
 </head>
 <body class="bg-gray-50 text-gray-800 pb-24 min-h-screen">
 
-    <!-- Configuração Direta e Segura para o Projeto na Vercel -->
+    <!-- Configuração Atualizada -->
     <script>
         const CONFIG = {
-            TELEFONE_WHATSAPP: "5511994405587", // Insira o WhatsApp do estabelecimento com DDD
+            TELEFONE_WHATSAPP: "5511994405587",
             NOCODB_URL: "https://app.nocodb.com",
-            NOCODB_TOKEN: "nc_pat_42vUB6VzsZ886HKmBSqS3PSFlwXTX7LXAsDHhJ17", // Insira o xc-token gerado no NocoDB
-            NOCODB_TABLE_PATH: "/api/v2/tables/m1jw9252lt7vz5m/records" // Caminho completo da tabela
+            NOCODB_TOKEN: "nc_pat_jVqZTXeazMNQzyGNVkqfAhLFy8JmjRrMkWKrFhY1", 
+            NOCODB_TABLE_PATH: "/api/v2/tables/m1jw9252lt7vz5m/records"
         };
     </script>
 
@@ -57,7 +57,7 @@
     <!-- Navegação por Categorias -->
     <nav class="bg-white shadow-sm border-b sticky top-[65px] z-10 py-3 px-4">
         <div class="max-w-md mx-auto flex gap-2 overflow-x-auto no-scrollbar" id="container-categorias">
-            <!-- Categorias injetadas via JS -->
+            <!-- Injetado via JS -->
         </div>
     </nav>
 
@@ -107,7 +107,7 @@
 
     <!-- Modal 2: Carrinho e Checkout -->
     <div id="modal-carrinho" class="fixed inset-0 bg-black/50 z-40 flex justify-end hidden">
-        <div class="bg-white w-full max-w-md h-full flex flex-col justify-between shadow-2xl animate-in slide-in-from-right duration-300">
+        <div class="bg-white w-full max-w-md h-full flex flex-col justify-between shadow-2xl">
             <div class="p-4 border-b flex justify-between items-center bg-gray-50">
                 <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
                     <i data-lucide="shopping-cart" class="w-5 h-5 text-amber-600"></i> Seu Pedido
@@ -179,7 +179,7 @@
         </div>
     </div>
 
-    <!-- Script Completo de Operação -->
+    <!-- Script de Operação -->
     <script>
         let produtosGlobal = [];
         let carrinho = [];
@@ -187,8 +187,20 @@
 
         document.addEventListener("DOMContentLoaded", () => {
             carregarProdutos();
-            lucide.createIcons();
+            if (window.lucide) lucide.createIcons();
         });
+
+        // Função auxiliar para obter URL de imagem (seja string ou anexo do NocoDB)
+        function extrairImagemUrl(img) {
+            if (!img) return 'https://via.placeholder.com/300?text=Sem+Foto';
+            if (Array.isArray(img) && img.length > 0) {
+                const item = img[0];
+                const link = item.url || item.path || '';
+                return link.startsWith('http') ? link : `${CONFIG.NOCODB_URL}/${link}`;
+            }
+            if (typeof img === 'string') return img;
+            return 'https://via.placeholder.com/300?text=Sem+Foto';
+        }
 
         async function carregarProdutos() {
             const containerProdutos = document.getElementById("container-produtos");
@@ -205,17 +217,41 @@
 
                 if (!response.ok) {
                     const erroTexto = await response.text();
-                    throw new Error(`Status ${response.status}: ${erroTexto}`);
+                    throw new Error("Status " + response.status + ": " + erroTexto);
                 }
 
                 const data = await response.json();
-                produtosGlobal = Array.isArray(data) ? data : (data.list || data.data || []);
+                const listaBruta = Array.isArray(data) ? data : (data.list || data.data || []);
+
+                // Normaliza os registros para aceitar nomes com maiúsculas/minúsculas
+                produtosGlobal = listaBruta.map((p, index) => {
+                    const id = p.Id ?? p.id ?? index;
+                    const titulo = p.titulo ?? p.Titulo ?? p.nome ?? p.Nome ?? p.Title ?? 'Sem título';
+                    const descricao = p.descricao ?? p.Descricao ?? p.Description ?? '';
+                    const precoOriginal = p.preco ?? p.Preco ?? p.Price ?? 0;
+                    const preco = typeof precoOriginal === 'string' 
+                        ? parseFloat(precoOriginal.replace(',', '.')) || 0 
+                        : Number(precoOriginal) || 0;
+                    const categoria = p.categoria ?? p.Categoria ?? p.Category ?? 'Geral';
+                    const emPromo = p.em_promocao === true || p.em_promocao === 'true' || p.em_promocao === 1 || p.Promocao === true;
+                    const imagem = extrairImagemUrl(p.imagem_url ?? p.imagem ?? p.Imagem ?? p.Image);
+
+                    return {
+                        id,
+                        titulo,
+                        descricao,
+                        preco,
+                        categoria,
+                        em_promocao: emPromo,
+                        imagem_url: imagem
+                    };
+                });
 
                 if (produtosGlobal.length === 0) {
                     containerProdutos.innerHTML = `
                         <div class="bg-yellow-50 border border-yellow-200 p-4 rounded-xl text-center">
-                            <p class="text-sm font-bold text-yellow-800">Conectou ao NocoDB, mas a tabela está vazia!</p>
-                            <p class="text-xs text-yellow-600 mt-1">Adicione registros na sua tabela do NocoDB.</p>
+                            <p class="text-sm font-bold text-yellow-800">Tabela vazia no NocoDB!</p>
+                            <p class="text-xs text-yellow-600 mt-1">Nenhum registro encontrado nesta tabela.</p>
                         </div>`;
                     return;
                 }
@@ -227,7 +263,7 @@
                     <div class="bg-red-50 border border-red-200 p-4 rounded-xl text-left space-y-2">
                         <p class="text-sm font-bold text-red-700 flex items-center gap-1">❌ Erro de Conexão com NocoDB</p>
                         <p class="text-xs text-red-600 font-mono bg-red-100 p-2 rounded break-all">${error.message}</p>
-                        <p class="text-xs text-gray-600 mt-2"><b>Dica:</b> Verifique se o `xc-token` e o `NOCODB_TABLE_PATH` estão corretos no objeto CONFIG.</p>
+                        <p class="text-xs text-gray-600 mt-2"><b>Dica:</b> Lembre-se de abrir via servidor HTTP (Vercel ou Live Server) e nunca como arquivo local direto (file://).</p>
                         <button onclick="carregarProdutos()" class="w-full mt-2 bg-red-600 text-white text-xs font-bold py-2 rounded-lg">Tentar Novamente</button>
                     </div>`;
             }
@@ -237,12 +273,10 @@
             const containerProdutos = document.getElementById("container-produtos");
             const containerCategorias = document.getElementById("container-categorias");
             
-            const temPromocoes = produtosGlobal.some(p => p.em_promocao === true || p.em_promocao === "true" || p.em_promocao === 1);
+            const temPromocoes = produtosGlobal.some(p => p.em_promocao);
 
             let categorias = ['todas'];
-            if (temPromocoes) {
-                categorias.push('promocoes');
-            }
+            if (temPromocoes) categorias.push('promocoes');
             categorias.push(...new Set(produtosGlobal.map(p => p.categoria).filter(Boolean)));
 
             containerCategorias.innerHTML = categorias.map(cat => {
@@ -262,7 +296,7 @@
             if (categoriaAtiva === 'todas') {
                 produtosFiltrados = produtosGlobal;
             } else if (categoriaAtiva === 'promocoes') {
-                produtosFiltrados = produtosGlobal.filter(p => p.em_promocao === true || p.em_promocao === "true" || p.em_promocao === 1);
+                produtosFiltrados = produtosGlobal.filter(p => p.em_promocao);
             } else {
                 produtosFiltrados = produtosGlobal.filter(p => p.categoria === categoriaAtiva);
             }
@@ -272,39 +306,35 @@
                 return;
             }
 
-            containerProdutos.innerHTML = produtosFiltrados.map(prod => {
-                const emPromo = prod.em_promocao === true || prod.em_promocao === "true" || prod.em_promocao === 1;
-
-                return `
-                    <div class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 items-center relative overflow-hidden">
-                        <div class="relative w-24 h-24 rounded-xl overflow-hidden shrink-0 cursor-pointer group" onclick="abrirLightbox(${prod.id})">
-                            <img src="${prod.imagem_url}" alt="${prod.titulo}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
-                            <div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-                                <i data-lucide="maximize-2" class="w-5 h-5 text-white"></i>
-                            </div>
-                        </div>
-
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center gap-1.5 mb-0.5">
-                                <h3 class="font-bold text-gray-900 text-sm truncate cursor-pointer" onclick="abrirLightbox(${prod.id})">${prod.titulo}</h3>
-                            </div>
-                            <p class="text-xs text-gray-500 line-clamp-2">${prod.descricao || ''}</p>
-                            
-                            <div class="mt-2 flex justify-between items-center">
-                                <div class="flex items-center gap-2">
-                                    <span class="font-extrabold text-amber-600 text-sm">R$ ${parseFloat(prod.preco || 0).toFixed(2).replace('.', ',')}</span>
-                                    ${emPromo ? `<span class="bg-red-100 text-red-700 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5">🔥 Promo</span>` : ''}
-                                </div>
-                                <button onclick="adicionarAoCarrinho(${prod.id})" class="bg-amber-100 text-amber-800 hover:bg-amber-600 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1">
-                                    <i data-lucide="plus" class="w-3.5 h-3.5"></i> Adicionar
-                                </button>
-                            </div>
+            containerProdutos.innerHTML = produtosFiltrados.map(prod => `
+                <div class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 items-center relative overflow-hidden">
+                    <div class="relative w-24 h-24 rounded-xl overflow-hidden shrink-0 cursor-pointer group" onclick="abrirLightbox('${prod.id}')">
+                        <img src="${prod.imagem_url}" alt="${prod.titulo}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                        <div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                            <i data-lucide="maximize-2" class="w-5 h-5 text-white"></i>
                         </div>
                     </div>
-                `;
-            }).join('');
 
-            lucide.createIcons();
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-1.5 mb-0.5">
+                            <h3 class="font-bold text-gray-900 text-sm truncate cursor-pointer" onclick="abrirLightbox('${prod.id}')">${prod.titulo}</h3>
+                        </div>
+                        <p class="text-xs text-gray-500 line-clamp-2">${prod.descricao || ''}</p>
+                        
+                        <div class="mt-2 flex justify-between items-center">
+                            <div class="flex items-center gap-2">
+                                <span class="font-extrabold text-amber-600 text-sm">R$ ${prod.preco.toFixed(2).replace('.', ',')}</span>
+                                ${prod.em_promocao ? `<span class="bg-red-100 text-red-700 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5">🔥 Promo</span>` : ''}
+                            </div>
+                            <button onclick="adicionarAoCarrinho('${prod.id}')" class="bg-amber-100 text-amber-800 hover:bg-amber-600 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1">
+                                <i data-lucide="plus" class="w-3.5 h-3.5"></i> Adicionar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            if (window.lucide) lucide.createIcons();
         }
 
         function filtrarCategoria(cat) {
@@ -313,18 +343,16 @@
         }
 
         function abrirLightbox(idProduto) {
-            const produto = produtosGlobal.find(p => p.id === idProduto);
+            const produto = produtosGlobal.find(p => String(p.id) === String(idProduto));
             if (!produto) return;
 
             document.getElementById("lightbox-img").src = produto.imagem_url;
             document.getElementById("lightbox-titulo").innerText = produto.titulo;
             document.getElementById("lightbox-ingredientes").innerText = produto.descricao || '';
-            document.getElementById("lightbox-preco").innerText = `R$ ${parseFloat(produto.preco || 0).toFixed(2).replace('.', ',')}`;
+            document.getElementById("lightbox-preco").innerText = `R$ ${produto.preco.toFixed(2).replace('.', ',')}`;
             
             const badgePromo = document.getElementById("lightbox-badge-promocao");
-            const emPromo = produto.em_promocao === true || produto.em_promocao === "true" || produto.em_promocao === 1;
-            
-            if (emPromo) badgePromo.classList.remove("hidden");
+            if (produto.em_promocao) badgePromo.classList.remove("hidden");
             else badgePromo.classList.add("hidden");
 
             const btnAdd = document.getElementById("lightbox-btn-add");
@@ -334,7 +362,7 @@
             };
 
             document.getElementById("modal-lightbox").classList.remove("hidden");
-            lucide.createIcons();
+            if (window.lucide) lucide.createIcons();
         }
 
         function fecharLightbox() {
@@ -342,18 +370,18 @@
         }
 
         function adicionarAoCarrinho(idProduto) {
-            const itemExistente = carrinho.find(item => item.id === idProduto);
+            const itemExistente = carrinho.find(item => String(item.id) === String(idProduto));
             if (itemExistente) {
                 itemExistente.quantidade++;
             } else {
-                const produto = produtosGlobal.find(p => p.id === idProduto);
-                carrinho.push({ ...produto, quantidade: 1 });
+                const produto = produtosGlobal.find(p => String(p.id) === String(idProduto));
+                if (produto) carrinho.push({ ...produto, quantidade: 1 });
             }
             atualizarCarrinhoUI();
         }
 
         function alterarQuantidade(idProduto, delta) {
-            const index = carrinho.findIndex(item => item.id === idProduto);
+            const index = carrinho.findIndex(item => String(item.id) === String(idProduto));
             if (index === -1) return;
 
             carrinho[index].quantidade += delta;
@@ -394,12 +422,12 @@
                 <div class="flex justify-between items-center bg-gray-50 p-2.5 rounded-xl border border-gray-100">
                     <div class="flex-1 min-w-0 pr-2">
                         <p class="font-semibold text-sm text-gray-900 truncate">${item.titulo}</p>
-                        <p class="text-xs text-gray-500">R$ ${parseFloat(item.preco).toFixed(2).replace('.', ',')} un.</p>
+                        <p class="text-xs text-gray-500">R$ ${item.preco.toFixed(2).replace('.', ',')} un.</p>
                     </div>
                     <div class="flex items-center gap-2 bg-white px-2 py-1 rounded-lg border">
-                        <button onclick="alterarQuantidade(${item.id}, -1)" class="text-gray-500 hover:text-red-600 font-bold px-1">-</button>
+                        <button onclick="alterarQuantidade('${item.id}', -1)" class="text-gray-500 hover:text-red-600 font-bold px-1">-</button>
                         <span class="text-xs font-bold text-gray-800 w-4 text-center">${item.quantidade}</span>
-                        <button onclick="alterarQuantidade(${item.id}, 1)" class="text-gray-500 hover:text-green-600 font-bold px-1">+</button>
+                        <button onclick="alterarQuantidade('${item.id}', 1)" class="text-gray-500 hover:text-green-600 font-bold px-1">+</button>
                     </div>
                 </div>
             `).join('');
@@ -432,7 +460,7 @@
                     
                     document.getElementById("cliente-link-maps").value = linkMaps;
                     statusGps.innerHTML = `<i data-lucide="check-circle" class="w-3.5 h-3.5 inline"></i> Localização GPS capturada com sucesso!`;
-                    lucide.createIcons();
+                    if (window.lucide) lucide.createIcons();
                 },
                 (error) => {
                     alert("Não foi possível obter a localização exata por GPS.");
