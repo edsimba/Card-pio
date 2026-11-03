@@ -237,21 +237,12 @@
             if (window.lucide) lucide.createIcons();
         });
 
-        // Identifica categoria de lanches
-        function ehCategoriaLanche(categoria) {
-            if (!categoria) return false;
-            const cat = categoria.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            return cat.includes('lanche') || cat.includes('hamburg') || cat.includes('burger') || cat.includes('sandu') || cat.includes('artesanal');
-        }
-
-        // Identifica categoria de bebidas/refrigerantes
         function ehCategoriaBebida(categoria) {
             if (!categoria) return false;
             const cat = categoria.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
             return cat.includes('refrigerante') || cat.includes('refri') || cat.includes('bebida') || cat.includes('suco') || cat.includes('agua') || cat.includes('cerveja') || cat.includes('drink');
         }
 
-        // Extrai ingredientes da descrição para remoção automática
         function extrairIngredientesDaDescricao(descricao) {
             if (!descricao || typeof descricao !== 'string') return [];
             let texto = descricao.trim().replace(/\.$/, '');
@@ -260,6 +251,56 @@
                 .map(i => i.trim())
                 .filter(i => i.length >= 2 && i.length <= 40);
             return itens.map(i => i.charAt(0).toUpperCase() + i.slice(1));
+        }
+
+        // Função universal que detecta qualquer nome de coluna na Tabela 2
+        function extrairItemAdicional(item, idx) {
+            if (!item || typeof item !== 'object') return null;
+
+            // Busca o nome em todas as variações (Title, nome, etc.)
+            let nome = item.Title ?? item.title ?? 
+                       item.nome ?? item.Nome ?? 
+                       item.titulo ?? item.Titulo ?? 
+                       item.adicional ?? item.Adicional ?? 
+                       item.item ?? item.Item ?? 
+                       item.descricao ?? item.Descricao;
+
+            // Busca o valor em todas as variações (valor, preco, preço, currency, etc.)
+            let valorBruto = item.valor ?? item.Valor ?? 
+                             item.preco ?? item.Preco ?? 
+                             item['preço'] ?? item['Preço'] ?? 
+                             item.price ?? item.Price ?? 
+                             item.currency ?? item.Currency ?? 
+                             item.custo ?? item.Custo;
+
+            // Se não encontrou pelo nome direto, faz varredura em todas as propriedades da linha
+            if (!nome || valorBruto === undefined) {
+                for (const chave in item) {
+                    if (['Id', 'id', 'created_at', 'updated_at', 'nc_order'].includes(chave)) continue;
+                    const val = item[chave];
+                    if (typeof val === 'number' && valorBruto === undefined) {
+                        valorBruto = val;
+                    } else if (typeof val === 'string' && !nome && isNaN(Number(val))) {
+                        nome = val;
+                    }
+                }
+            }
+
+            if (!nome) return null;
+
+            let preco = 0;
+            if (typeof valorBruto === 'number') {
+                preco = valorBruto;
+            } else if (typeof valorBruto === 'string') {
+                const limpo = valorBruto.replace(/[^\d.,]/g, '').replace(',', '.');
+                preco = parseFloat(limpo) || 0;
+            }
+
+            return {
+                id: item.Id ?? item.id ?? idx,
+                nome: String(nome).trim(),
+                preco: preco
+            };
         }
 
         function verificarFormaPagamento() {
@@ -340,7 +381,6 @@
             }
         }
 
-        // Carrega produtos da Tabela 1 e adicionais da Tabela 2 simultaneamente
         async function carregarTudo() {
             const containerProdutos = document.getElementById("container-produtos");
 
@@ -357,22 +397,15 @@
 
                 if (!resProdutos.ok) throw new Error("Status " + resProdutos.status + ": " + (await resProdutos.text()));
 
-                // Processa Tabela 2 (Adicionais)
+                // Processa Adicionais da Tabela 2
                 if (resAdicionais && resAdicionais.ok) {
                     const dataAdic = await resAdicionais.json();
                     const listaAdic = Array.isArray(dataAdic) ? dataAdic : (dataAdic.list || dataAdic.data || []);
-                    adicionaisGlobaisTabela = listaAdic.map((item, idx) => {
-                        const nome = item.nome ?? item.Nome ?? item.titulo ?? item.Titulo ?? item.adicional ?? item.Adicional ?? item.item ?? item.Item ?? item.title;
-                        if (!nome) return null;
-                        const valorBruto = item.valor ?? item.Valor ?? item.preco ?? item.Preco ?? item.price ?? item.Price ?? 0;
-                        const preco = typeof valorBruto === 'number' 
-                            ? valorBruto 
-                            : (parseFloat(String(valorBruto).replace(/[^\d.,]/g, '').replace(',', '.')) || 0);
-                        return { id: idx, nome: String(nome).trim(), preco };
-                    }).filter(Boolean);
+                    adicionaisGlobaisTabela = listaAdic.map((item, idx) => extrairItemAdicional(item, idx)).filter(Boolean);
+                    console.log("Adicionais carregados da Tabela 2 com sucesso:", adicionaisGlobaisTabela);
                 }
 
-                // Processa Tabela 1 (Produtos)
+                // Processa Produtos da Tabela 1
                 const dataProd = await resProdutos.json();
                 const listaBruta = Array.isArray(dataProd) ? dataProd : (dataProd.list || dataProd.data || []);
 
@@ -406,13 +439,11 @@
                     const categoria = p.categoria ?? p.Categoria ?? p.Category ?? 'Geral';
                     const emPromo = p.em_promocao === true || p.em_promocao === 'true' || p.em_promocao === 1 || p.Promocao === true;
 
-                    const ehLanche = ehCategoriaLanche(categoria);
-                    
-                    // Lanches puxam automaticamente os adicionais da Tabela 2
-                    const adicionais = ehLanche ? adicionaisGlobaisTabela : [];
-                    
-                    // Lanches extraem automaticamente remoções da descrição
-                    const remocoes = ehLanche ? extrairIngredientesDaDescricao(descricao) : [];
+                    const ehBebida = ehCategoriaBebida(categoria);
+
+                    // Se NÃO for bebida, aplica os adicionais da Tabela 2 e remoções da descrição!
+                    const adicionais = !ehBebida ? adicionaisGlobaisTabela : [];
+                    const remocoes = !ehBebida ? extrairIngredientesDaDescricao(descricao) : [];
 
                     return {
                         id,
@@ -520,7 +551,6 @@
             renderizarInterface();
         }
 
-        // Se for refrigerante/bebida, adiciona direto sem burocracia; se for lanche, abre a personalização
         function cliqueAdicionarCard(idProduto) {
             const produto = produtosGlobal.find(p => String(p.id) === String(idProduto));
             if (!produto) return;
@@ -609,7 +639,7 @@
                 listaRemocoes.innerHTML = '';
             }
 
-            // 3. Regra de Observações: Oculta para refrigerantes/bebidas
+            // 3. Regra de Observações: Oculta para bebidas
             const secaoObs = document.getElementById("secao-observacoes");
             if (ehCategoriaBebida(produto.categoria)) {
                 secaoObs.classList.add("hidden");
