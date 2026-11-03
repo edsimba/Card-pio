@@ -1,0 +1,8 @@
+{
+  "name": "cardapio-digital",
+  "version": "1.0.0",
+  "description": "Cardapio digital integrado com NocoDB e WhatsApp",
+  "scripts": {
+    "build": "node build.js"
+  }
+}
