@@ -84,7 +84,7 @@
     <div id="modal-lightbox" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden" onclick="fecharLightbox()">
         <div class="bg-white rounded-2xl overflow-hidden max-w-sm w-full shadow-2xl" onclick="event.stopPropagation()">
             <div class="relative bg-black">
-                <img id="lightbox-img" src="" alt="Produto" class="w-full h-64 object-cover">
+                <img id="lightbox-img" src="" alt="Produto" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80'" class="w-full h-64 object-cover">
                 <div id="lightbox-badge-promocao" class="absolute top-3 left-3 bg-red-600 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow uppercase tracking-wider hidden flex items-center gap-1">
                     <i data-lucide="flame" class="w-3.5 h-3.5"></i> Promoção
                 </div>
@@ -165,7 +165,7 @@
                         </select>
                     </div>
 
-                    <!-- Campo Condicional: Troco para Dinheiro (com rolagem automática) -->
+                    <!-- Campo Condicional: Troco para Dinheiro -->
                     <div id="campo-troco-container" class="hidden bg-amber-50 p-3.5 rounded-xl border border-amber-300 transition-all duration-300 shadow-sm">
                         <label class="block text-xs font-bold text-amber-900 mb-1">Troco para quanto?</label>
                         <input type="text" id="cliente-troco" placeholder="Ex: Troco para R$ 50,00 (ou deixe em branco se não precisar)" class="w-full px-3 py-2.5 bg-white border border-amber-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium">
@@ -201,7 +201,6 @@
             if (window.lucide) lucide.createIcons();
         });
 
-        // Rola automaticamente para o campo de troco ao selecionar "Dinheiro"
         function verificarFormaPagamento() {
             const pagamento = document.getElementById("cliente-pagamento").value;
             const containerTroco = document.getElementById("campo-troco-container");
@@ -209,7 +208,6 @@
 
             if (pagamento === "Dinheiro") {
                 containerTroco.classList.remove("hidden");
-                // Aguarda o elemento renderizar e rola suavemente até ele
                 setTimeout(() => {
                     containerTroco.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     campoInputTroco.focus();
@@ -220,15 +218,95 @@
             }
         }
 
+        // Função robusta para extrair a imagem correta do NocoDB
         function extrairImagemUrl(img) {
-            if (!img) return 'https://via.placeholder.com/300?text=Sem+Foto';
+            const placeholder = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80';
+            if (!img) return placeholder;
+
+            // Se o campo vier como string JSON (comum em bancos SQL via NocoDB)
+            if (typeof img === 'string') {
+                const trimmed = img.trim();
+                if ((trimmed.startsWith('[') && trimmed.endsWith(']')) || (trimmed.startsWith('{') && trimmed.endsWith('}'))) {
+                    try {
+                        img = JSON.parse(trimmed);
+                    } catch (e) {
+                        // continua como string
+                    }
+                }
+            }
+
+            // Se for um array de anexos (padrão do campo Attachment no NocoDB)
             if (Array.isArray(img) && img.length > 0) {
                 const item = img[0];
-                const link = item.url || item.path || '';
-                return link.startsWith('http') ? link : `${CONFIG.NOCODB_URL}/${link}`;
+                if (typeof item === 'string') return formatarLink(item);
+
+                // PRIORIDADE MÁXIMA: signedUrl (permite acesso público da Amazon/Storage sem bloquear 401)
+                const link = item.signedUrl || 
+                             item.thumbnails?.card_cover?.signedUrl || 
+                             item.thumbnails?.small?.signedUrl || 
+                             item.url || 
+                             item.path || '';
+                return formatarLink(link);
             }
-            if (typeof img === 'string') return img;
-            return 'https://via.placeholder.com/300?text=Sem+Foto';
+
+            // Se for um objeto único
+            if (typeof img === 'object' && img !== null) {
+                const link = img.signedUrl || 
+                             img.thumbnails?.card_cover?.signedUrl || 
+                             img.thumbnails?.small?.signedUrl || 
+                             img.url || 
+                             img.path || '';
+                return formatarLink(link);
+            }
+
+            // Se for URL direta em formato de texto simples
+            if (typeof img === 'string' && img.trim() !== '') {
+                return formatarLink(img.trim());
+            }
+
+            return placeholder;
+        }
+
+        function formatarLink(link) {
+            const placeholder = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80';
+            if (!link) return placeholder;
+
+            // Se já for link completo (HTTP/HTTPS ou base64)
+            if (link.startsWith('http://') || link.startsWith('https://') || link.startsWith('data:image')) {
+                return link;
+            }
+
+            // Remove barras iniciais duplicadas caso seja relativo
+            const caminhoLimpo = link.startsWith('/') ? link.substring(1) : link;
+            return `${CONFIG.NOCODB_URL}/${caminhoLimpo}`;
+        }
+
+        // Localiza a coluna de foto independentemente de como foi nomeada no NocoDB
+        function encontrarCampoImagem(p) {
+            const camposPossiveis = [
+                'imagem_url', 'imagem', 'Imagem', 'Image', 'image', 
+                'foto', 'Foto', 'Anexo', 'anexo', 'Attachment', 'attachment', 
+                'arquivo', 'Arquivo', 'File', 'file', 'Photos', 'photos'
+            ];
+
+            for (const campo of camposPossiveis) {
+                if (p[campo] !== undefined && p[campo] !== null && p[campo] !== '') {
+                    return p[campo];
+                }
+            }
+
+            // Se não encontrou pelo nome, busca qualquer propriedade que pareça imagem
+            for (const chave in p) {
+                const valor = p[chave];
+                if (Array.isArray(valor) && valor.length > 0 && (valor[0]?.signedUrl || valor[0]?.url || valor[0]?.path)) {
+                    return valor;
+                }
+                if (typeof valor === 'string' && (valor.includes('.jpg') || valor.includes('.png') || valor.includes('.webp') || valor.includes('.jpeg') || valor.includes('download/'))) {
+                    return valor;
+                }
+            }
+
+            return null;
         }
 
         async function carregarProdutos() {
@@ -262,7 +340,10 @@
                         : Number(precoOriginal) || 0;
                     const categoria = p.categoria ?? p.Categoria ?? p.Category ?? 'Geral';
                     const emPromo = p.em_promocao === true || p.em_promocao === 'true' || p.em_promocao === 1 || p.Promocao === true;
-                    const imagem = extrairImagemUrl(p.imagem_url ?? p.imagem ?? p.Imagem ?? p.Image);
+
+                    // Busca a imagem de forma inteligente
+                    const dadoImagem = encontrarCampoImagem(p);
+                    const imagem = extrairImagemUrl(dadoImagem);
 
                     return {
                         id,
@@ -345,8 +426,11 @@
 
             containerProdutos.innerHTML = produtosFiltrados.map(prod => `
                 <div class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 items-center relative overflow-hidden">
-                    <div class="relative w-24 h-24 rounded-xl overflow-hidden shrink-0 cursor-pointer group" onclick="abrirLightbox('${prod.id}')">
-                        <img src="${prod.imagem_url}" alt="${prod.titulo}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                    <div class="relative w-24 h-24 rounded-xl overflow-hidden shrink-0 cursor-pointer group bg-gray-100" onclick="abrirLightbox('${prod.id}')">
+                        <img src="${prod.imagem_url}" 
+                             alt="${prod.titulo}" 
+                             onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80'" 
+                             class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
                         <div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
                             <i data-lucide="maximize-2" class="w-5 h-5 text-white"></i>
                         </div>
@@ -383,7 +467,12 @@
             const produto = produtosGlobal.find(p => String(p.id) === String(idProduto));
             if (!produto) return;
 
-            document.getElementById("lightbox-img").src = produto.imagem_url;
+            const imgLightbox = document.getElementById("lightbox-img");
+            imgLightbox.src = produto.imagem_url;
+            imgLightbox.onerror = () => {
+                imgLightbox.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80';
+            };
+
             document.getElementById("lightbox-titulo").innerText = produto.titulo;
             document.getElementById("lightbox-ingredientes").innerText = produto.descricao || '';
             document.getElementById("lightbox-preco").innerText = `R$ ${produto.preco.toFixed(2).replace('.', ',')}`;
