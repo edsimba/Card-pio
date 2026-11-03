@@ -38,13 +38,11 @@
         };
     </script>
 
-    <!-- Header Principal com Nome e Logo Dinâmicos -->
+    <!-- Header Principal -->
     <header class="bg-amber-600 text-white p-4 shadow-md sticky top-0 z-20">
         <div class="max-w-md mx-auto flex justify-between items-center gap-3">
             <div class="flex items-center gap-3 min-w-0">
-                <!-- Logo da Loja (injetada via NocoDB) -->
                 <img id="loja-logo" src="" alt="Logo" class="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm hidden shrink-0 bg-white">
-                
                 <div class="min-w-0">
                     <h1 id="loja-nome" class="text-lg sm:text-xl font-bold tracking-wide truncate">Lanchonete & Hamburgueria</h1>
                     <p class="text-xs text-amber-100 flex items-center gap-1 mt-0.5">
@@ -60,11 +58,9 @@
         </div>
     </header>
 
-    <!-- Navegação por Categorias -->
+    <!-- Categorias -->
     <nav class="bg-white shadow-sm border-b sticky top-[73px] z-10 py-3 px-4">
-        <div class="max-w-md mx-auto flex gap-2 overflow-x-auto no-scrollbar" id="container-categorias">
-            <!-- Categorias injetadas via JS -->
-        </div>
+        <div class="max-w-md mx-auto flex gap-2 overflow-x-auto no-scrollbar" id="container-categorias"></div>
     </nav>
 
     <!-- Lista de Produtos -->
@@ -86,32 +82,67 @@
         </button>
     </div>
 
-    <!-- Modal 1: Lightbox (Ampliação de Imagem) -->
-    <div id="modal-lightbox" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden" onclick="fecharLightbox()">
-        <div class="bg-white rounded-2xl overflow-hidden max-w-sm w-full shadow-2xl" onclick="event.stopPropagation()">
-            <div class="relative bg-black">
-                <img id="lightbox-img" src="" alt="Produto" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80'" class="w-full h-64 object-cover">
-                <div id="lightbox-badge-promocao" class="absolute top-3 left-3 bg-red-600 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow uppercase tracking-wider hidden flex items-center gap-1">
+    <!-- Modal: Personalização do Lanche -->
+    <div id="modal-personalizacao" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden" onclick="fecharModalPersonalizacao()">
+        <div class="bg-white rounded-2xl overflow-hidden max-w-md w-full max-h-[90vh] flex flex-col shadow-2xl" onclick="event.stopPropagation()">
+            <div class="relative bg-black shrink-0">
+                <img id="modal-prod-img" src="" alt="Produto" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80'" class="w-full h-52 object-cover">
+                <div id="modal-prod-badge-promo" class="absolute top-3 left-3 bg-red-600 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow uppercase tracking-wider hidden flex items-center gap-1">
                     <i data-lucide="flame" class="w-3.5 h-3.5"></i> Promoção
                 </div>
-                <button onclick="fecharLightbox()" class="absolute top-3 right-3 bg-black/60 text-white p-1.5 rounded-full hover:bg-black">
+                <button onclick="fecharModalPersonalizacao()" class="absolute top-3 right-3 bg-black/60 text-white p-1.5 rounded-full hover:bg-black">
                     <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
             </div>
-            <div class="p-5">
-                <h3 id="lightbox-titulo" class="text-lg font-bold text-gray-900"></h3>
-                <p id="lightbox-ingredientes" class="text-sm text-gray-600 mt-2 leading-relaxed"></p>
-                <div class="mt-4 flex justify-between items-center pt-3 border-t">
-                    <span id="lightbox-preco" class="text-xl font-extrabold text-amber-600"></span>
-                    <button id="lightbox-btn-add" class="bg-amber-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-amber-700 transition flex items-center gap-1.5">
-                        <i data-lucide="plus" class="w-4 h-4"></i> Adicionar
-                    </button>
+
+            <div class="p-5 overflow-y-auto space-y-5 flex-1">
+                <div>
+                    <h3 id="modal-prod-titulo" class="text-xl font-bold text-gray-900"></h3>
+                    <p id="modal-prod-descricao" class="text-sm text-gray-600 mt-1 leading-relaxed"></p>
+                    <p id="modal-prod-preco-base" class="text-lg font-extrabold text-amber-600 mt-2"></p>
                 </div>
+
+                <!-- Seção Adicionais Pagos (coluna do NocoDB) -->
+                <div id="secao-adicionais" class="hidden border-t pt-4">
+                    <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                        <i data-lucide="plus-circle" class="w-4 h-4 text-green-600"></i> Adicionais
+                    </h4>
+                    <div id="lista-adicionais" class="space-y-2"></div>
+                </div>
+
+                <!-- Seção Remoções Automáticas (extraídas da descrição) -->
+                <div id="secao-remocoes" class="hidden border-t pt-4">
+                    <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                        <i data-lucide="minus-circle" class="w-4 h-4 text-red-500"></i> Deseja retirar algum ingrediente? (Sem custo)
+                    </h4>
+                    <div id="lista-remocoes" class="grid grid-cols-2 gap-2"></div>
+                </div>
+
+                <!-- Observações -->
+                <div class="border-t pt-4">
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                        <i data-lucide="message-square" class="w-4 h-4 text-amber-600"></i> Alguma observação?
+                    </label>
+                    <input type="text" id="modal-prod-obs" placeholder="Ex: Carne bem passada, maionese à parte..." class="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+                </div>
+            </div>
+
+            <!-- Rodapé -->
+            <div class="p-4 border-t bg-gray-50 flex items-center justify-between gap-3 shrink-0">
+                <div class="flex items-center gap-2 bg-white px-2 py-1.5 rounded-xl border border-gray-200">
+                    <button onclick="alterarQtdModal(-1)" class="text-gray-500 hover:text-red-600 font-bold px-2 text-base">-</button>
+                    <span id="modal-prod-qtd" class="text-sm font-bold text-gray-800 w-5 text-center">1</span>
+                    <button onclick="alterarQtdModal(1)" class="text-gray-500 hover:text-green-600 font-bold px-2 text-base">+</button>
+                </div>
+                <button onclick="confirmarAdicaoCustomizada()" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 px-4 rounded-xl shadow transition flex justify-between items-center text-sm">
+                    <span>Adicionar</span>
+                    <span id="modal-btn-total">R$ 0,00</span>
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- Modal 2: Carrinho e Checkout -->
+    <!-- Modal: Carrinho e Checkout -->
     <div id="modal-carrinho" class="fixed inset-0 bg-black/50 z-40 flex justify-end hidden">
         <div class="bg-white w-full max-w-md h-full flex flex-col justify-between shadow-2xl">
             <div class="p-4 border-b flex justify-between items-center bg-gray-50">
@@ -126,9 +157,7 @@
             <div class="p-4 overflow-y-auto space-y-6 flex-1 scroll-smooth" id="corpo-carrinho">
                 <div>
                     <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Itens selecionados</h3>
-                    <div id="lista-itens-carrinho" class="space-y-3">
-                        <!-- Itens do carrinho -->
-                    </div>
+                    <div id="lista-itens-carrinho" class="space-y-3"></div>
                 </div>
 
                 <form id="form-checkout" class="space-y-4 pt-4 border-t">
@@ -196,15 +225,54 @@
         let produtosGlobal = [];
         let carrinho = [];
         let categoriaAtiva = '';
-        let infoLoja = {
-            nome: "Lanchonete & Hamburgueria",
-            logo: null
-        };
+        let infoLoja = { nome: "Lanchonete & Hamburgueria", logo: null };
+
+        let itemEmEdicao = null;
+        let qtdModal = 1;
 
         document.addEventListener("DOMContentLoaded", () => {
             carregarProdutos();
             if (window.lucide) lucide.createIcons();
         });
+
+        // Identifica se a categoria do produto pertence à categoria de lanches/hambúrgueres
+        function ehCategoriaLanche(categoria) {
+            if (!categoria) return false;
+            const cat = categoria.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            return cat.includes('lanche') || cat.includes('hamburg') || cat.includes('burger') || cat.includes('sandu') || cat.includes('artesanal');
+        }
+
+        // Extrai automaticamente os ingredientes da descrição apenas dividindo por vírgulas e "e"
+        function extrairIngredientesDaDescricao(descricao) {
+            if (!descricao || typeof descricao !== 'string') return [];
+            
+            // Remove ponto final e substitui ' e ' ou ' & ' por vírgula
+            let texto = descricao.trim().replace(/\.$/, '');
+            texto = texto.replace(/\s+(e|&)\s+/gi, ', ');
+
+            // Separa por vírgulas, pontos e vírgulas ou barras
+            const itens = texto.split(/[,;\/•\n]+/)
+                .map(i => i.trim())
+                .filter(i => i.length >= 2 && i.length <= 40);
+
+            // Deixa a primeira letra maiúscula para ficar bonito
+            return itens.map(i => i.charAt(0).toUpperCase() + i.slice(1));
+        }
+
+        // Lê os adicionais da coluna NocoDB (ex: "Carne: 6.00, Ovo: 2.50")
+        function parseAdicionais(str) {
+            if (!str || typeof str !== 'string') return [];
+            return str.split(/[\n,]+/).map((item, idx) => {
+                const partes = item.split(/[:\-=]/);
+                if (partes.length >= 2) {
+                    const nome = partes[0].trim();
+                    const precoLimpo = partes.slice(1).join('').replace(/[^\d.,]/g, '').replace(',', '.');
+                    const preco = parseFloat(precoLimpo) || 0;
+                    return { id: idx, nome, preco };
+                }
+                return null;
+            }).filter(Boolean);
+        }
 
         function verificarFormaPagamento() {
             const pagamento = document.getElementById("cliente-pagamento").value;
@@ -230,88 +298,53 @@
             if (typeof img === 'string') {
                 const trimmed = img.trim();
                 if ((trimmed.startsWith('[') && trimmed.endsWith(']')) || (trimmed.startsWith('{') && trimmed.endsWith('}'))) {
-                    try {
-                        img = JSON.parse(trimmed);
-                    } catch (e) {}
+                    try { img = JSON.parse(trimmed); } catch (e) {}
                 }
             }
 
             if (Array.isArray(img) && img.length > 0) {
                 const item = img[0];
                 if (typeof item === 'string') return formatarLink(item);
-
-                const link = item.signedUrl || 
-                             item.thumbnails?.card_cover?.signedUrl || 
-                             item.thumbnails?.small?.signedUrl || 
-                             item.url || 
-                             item.path || '';
+                const link = item.signedUrl || item.thumbnails?.card_cover?.signedUrl || item.thumbnails?.small?.signedUrl || item.url || item.path || '';
                 return formatarLink(link);
             }
 
             if (typeof img === 'object' && img !== null) {
-                const link = img.signedUrl || 
-                             img.thumbnails?.card_cover?.signedUrl || 
-                             img.thumbnails?.small?.signedUrl || 
-                             img.url || 
-                             img.path || '';
+                const link = img.signedUrl || img.thumbnails?.card_cover?.signedUrl || img.thumbnails?.small?.signedUrl || img.url || img.path || '';
                 return formatarLink(link);
             }
 
-            if (typeof img === 'string' && img.trim() !== '') {
-                return formatarLink(img.trim());
-            }
-
+            if (typeof img === 'string' && img.trim() !== '') return formatarLink(img.trim());
             return placeholder;
         }
 
         function formatarLink(link) {
             const placeholder = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80';
             if (!link) return placeholder;
-
-            if (link.startsWith('http://') || link.startsWith('https://') || link.startsWith('data:image')) {
-                return link;
-            }
-
+            if (link.startsWith('http://') || link.startsWith('https://') || link.startsWith('data:image')) return link;
             const caminhoLimpo = link.startsWith('/') ? link.substring(1) : link;
             return `${CONFIG.NOCODB_URL}/${caminhoLimpo}`;
         }
 
         function encontrarCampoImagem(p) {
-            const camposPossiveis = [
-                'imagem_url', 'imagem', 'Imagem', 'Image', 'image', 
-                'foto', 'Foto', 'Anexo', 'anexo', 'Attachment', 'attachment', 
-                'arquivo', 'Arquivo', 'File', 'file', 'Photos', 'photos'
-            ];
-
-            for (const campo of camposPossiveis) {
-                if (p[campo] !== undefined && p[campo] !== null && p[campo] !== '') {
-                    return p[campo];
-                }
+            const campos = ['imagem_url', 'imagem', 'Imagem', 'Image', 'foto', 'Foto', 'Anexo', 'anexo'];
+            for (const campo of campos) {
+                if (p[campo]) return p[campo];
             }
-
             for (const chave in p) {
                 const valor = p[chave];
-                if (Array.isArray(valor) && valor.length > 0 && (valor[0]?.signedUrl || valor[0]?.url || valor[0]?.path)) {
-                    return valor;
-                }
-                if (typeof valor === 'string' && (valor.includes('.jpg') || valor.includes('.png') || valor.includes('.webp') || valor.includes('.jpeg') || valor.includes('download/'))) {
-                    return valor;
-                }
+                if (Array.isArray(valor) && valor.length > 0 && (valor[0]?.signedUrl || valor[0]?.url)) return valor;
             }
-
             return null;
         }
 
-        // Aplica o nome e logo no cabeçalho
         function atualizarCabecalhoLoja() {
             const elNome = document.getElementById("loja-nome");
             const elLogo = document.getElementById("loja-logo");
-
             if (elNome && infoLoja.nome) {
                 elNome.innerText = infoLoja.nome;
                 document.title = `${infoLoja.nome} - Cardápio Digital`;
             }
-
             if (elLogo && infoLoja.logo) {
                 elLogo.src = infoLoja.logo;
                 elLogo.classList.remove("hidden");
@@ -332,31 +365,24 @@
                     }
                 });
 
-                if (!response.ok) {
-                    const erroTexto = await response.text();
-                    throw new Error("Status " + response.status + ": " + erroTexto);
-                }
+                if (!response.ok) throw new Error("Status " + response.status + ": " + (await response.text()));
 
                 const data = await response.json();
                 const listaBruta = Array.isArray(data) ? data : (data.list || data.data || []);
 
-                // 1. Procura se há dados da loja configurados em qualquer linha da tabela
                 for (const item of listaBruta) {
-                    const nomeDetectado = item.nome_loja || item.Nome_Loja || item.loja_nome || item.nome_estabelecimento;
-                    if (nomeDetectado && !infoLoja.customizado) {
-                        infoLoja.nome = String(nomeDetectado).trim();
+                    const nome = item.nome_loja || item.Nome_Loja || item.loja_nome;
+                    if (nome && !infoLoja.customizado) {
+                        infoLoja.nome = String(nome).trim();
                         infoLoja.customizado = true;
                     }
-
-                    const logoDetectada = item.logo_loja || item.Logo_Loja || item.logo || item.Logo;
-                    if (logoDetectada && !infoLoja.logo) {
-                        infoLoja.logo = extrairImagemUrl(logoDetectada);
+                    const logo = item.logo_loja || item.Logo_Loja || item.logo;
+                    if (logo && !infoLoja.logo) {
+                        infoLoja.logo = extrairImagemUrl(logo);
                     }
                 }
-
                 atualizarCabecalhoLoja();
 
-                // 2. Filtra eventuais linhas dedicadas apenas a configurações (ex: categoria 'config')
                 const itensValidos = listaBruta.filter(p => {
                     const cat = String(p.categoria || p.Categoria || '').toLowerCase().trim();
                     const tit = String(p.titulo || p.Titulo || '').toLowerCase().trim();
@@ -374,8 +400,12 @@
                     const categoria = p.categoria ?? p.Categoria ?? p.Category ?? 'Geral';
                     const emPromo = p.em_promocao === true || p.em_promocao === 'true' || p.em_promocao === 1 || p.Promocao === true;
 
-                    const dadoImagem = encontrarCampoImagem(p);
-                    const imagem = extrairImagemUrl(dadoImagem);
+                    // 1. Adicionais vêm da coluna do NocoDB
+                    const adicionaisBrutos = p.adicionais ?? p.Adicionais ?? p.extras ?? '';
+
+                    // 2. Remoções são extraídas AUTOMATICAMENTE da descrição se for da categoria de lanches
+                    const ehLanche = ehCategoriaLanche(categoria);
+                    const remocoesExtraidas = ehLanche ? extrairIngredientesDaDescricao(descricao) : [];
 
                     return {
                         id,
@@ -384,7 +414,9 @@
                         preco,
                         categoria,
                         em_promocao: emPromo,
-                        imagem_url: imagem
+                        imagem_url: extrairImagemUrl(encontrarCampoImagem(p)),
+                        adicionais: parseAdicionais(adicionaisBrutos),
+                        remocoes: remocoesExtraidas
                     };
                 });
 
@@ -392,19 +424,18 @@
                     containerProdutos.innerHTML = `
                         <div class="bg-yellow-50 border border-yellow-200 p-4 rounded-xl text-center">
                             <p class="text-sm font-bold text-yellow-800">Tabela vazia no NocoDB!</p>
-                            <p class="text-xs text-yellow-600 mt-1">Nenhum produto encontrado nesta tabela.</p>
+                            <p class="text-xs text-yellow-600 mt-1">Nenhum produto cadastrado.</p>
                         </div>`;
                     return;
                 }
 
                 renderizarInterface();
             } catch (error) {
-                console.error("Erro ao conectar com NocoDB:", error);
+                console.error("Erro NocoDB:", error);
                 containerProdutos.innerHTML = `
                     <div class="bg-red-50 border border-red-200 p-4 rounded-xl text-left space-y-2">
                         <p class="text-sm font-bold text-red-700 flex items-center gap-1">❌ Erro de Conexão com NocoDB</p>
                         <p class="text-xs text-red-600 font-mono bg-red-100 p-2 rounded break-all">${error.message}</p>
-                        <p class="text-xs text-gray-600 mt-2"><b>Dica:</b> Lembre-se de abrir via servidor HTTP (Vercel ou Live Server) e nunca como arquivo local direto (file://).</p>
                         <button onclick="carregarProdutos()" class="w-full mt-2 bg-red-600 text-white text-xs font-bold py-2 rounded-lg">Tentar Novamente</button>
                     </div>`;
             }
@@ -415,17 +446,11 @@
             const containerCategorias = document.getElementById("container-categorias");
             
             const temPromocoes = produtosGlobal.some(p => p.em_promocao);
-
             let categorias = [];
-            if (temPromocoes) {
-                categorias.push('promocoes');
-            }
+            if (temPromocoes) categorias.push('promocoes');
 
             const categoriasNormais = [...new Set(
-                produtosGlobal
-                    .filter(p => !p.em_promocao)
-                    .map(p => p.categoria)
-                    .filter(Boolean)
+                produtosGlobal.filter(p => !p.em_promocao).map(p => p.categoria).filter(Boolean)
             )];
             categorias.push(...categoriasNormais);
 
@@ -435,7 +460,6 @@
 
             containerCategorias.innerHTML = categorias.map(cat => {
                 let nomeExibicao = cat === 'promocoes' ? '🔥 Promoções' : cat;
-
                 return `
                     <button onclick="filtrarCategoria('${cat}')" 
                             class="categoria-btn px-4 py-1.5 rounded-full text-sm font-medium capitalize shrink-0 transition ${cat === categoriaAtiva ? 'bg-amber-600 text-white font-bold shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}">
@@ -444,12 +468,9 @@
                 `;
             }).join('');
 
-            let produtosFiltrados = [];
-            if (categoriaAtiva === 'promocoes') {
-                produtosFiltrados = produtosGlobal.filter(p => p.em_promocao);
-            } else {
-                produtosFiltrados = produtosGlobal.filter(p => p.categoria === categoriaAtiva && !p.em_promocao);
-            }
+            let produtosFiltrados = (categoriaAtiva === 'promocoes')
+                ? produtosGlobal.filter(p => p.em_promocao)
+                : produtosGlobal.filter(p => p.categoria === categoriaAtiva && !p.em_promocao);
 
             if (produtosFiltrados.length === 0) {
                 containerProdutos.innerHTML = `<p class="text-center py-8 text-gray-500">Nenhum produto disponível nesta categoria.</p>`;
@@ -458,11 +479,8 @@
 
             containerProdutos.innerHTML = produtosFiltrados.map(prod => `
                 <div class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 items-center relative overflow-hidden">
-                    <div class="relative w-24 h-24 rounded-xl overflow-hidden shrink-0 cursor-pointer group bg-gray-100" onclick="abrirLightbox('${prod.id}')">
-                        <img src="${prod.imagem_url}" 
-                             alt="${prod.titulo}" 
-                             onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80'" 
-                             class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                    <div class="relative w-24 h-24 rounded-xl overflow-hidden shrink-0 cursor-pointer group bg-gray-100" onclick="abrirModalPersonalizacao('${prod.id}')">
+                        <img src="${prod.imagem_url}" alt="${prod.titulo}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80'" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
                         <div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
                             <i data-lucide="maximize-2" class="w-5 h-5 text-white"></i>
                         </div>
@@ -470,7 +488,7 @@
 
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center gap-1.5 mb-0.5">
-                            <h3 class="font-bold text-gray-900 text-sm truncate cursor-pointer" onclick="abrirLightbox('${prod.id}')">${prod.titulo}</h3>
+                            <h3 class="font-bold text-gray-900 text-sm truncate cursor-pointer" onclick="abrirModalPersonalizacao('${prod.id}')">${prod.titulo}</h3>
                         </div>
                         <p class="text-xs text-gray-500 line-clamp-2">${prod.descricao || ''}</p>
                         
@@ -479,7 +497,7 @@
                                 <span class="font-extrabold text-amber-600 text-sm">R$ ${prod.preco.toFixed(2).replace('.', ',')}</span>
                                 ${prod.em_promocao ? `<span class="bg-red-100 text-red-700 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5">🔥 Promo</span>` : ''}
                             </div>
-                            <button onclick="adicionarAoCarrinho('${prod.id}')" class="bg-amber-100 text-amber-800 hover:bg-amber-600 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1">
+                            <button onclick="abrirModalPersonalizacao('${prod.id}')" class="bg-amber-100 text-amber-800 hover:bg-amber-600 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1">
                                 <i data-lucide="plus" class="w-3.5 h-3.5"></i> Adicionar
                             </button>
                         </div>
@@ -495,51 +513,128 @@
             renderizarInterface();
         }
 
-        function abrirLightbox(idProduto) {
+        function abrirModalPersonalizacao(idProduto) {
             const produto = produtosGlobal.find(p => String(p.id) === String(idProduto));
             if (!produto) return;
 
-            const imgLightbox = document.getElementById("lightbox-img");
-            imgLightbox.src = produto.imagem_url;
-            imgLightbox.onerror = () => {
-                imgLightbox.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80';
-            };
+            itemEmEdicao = produto;
+            qtdModal = 1;
 
-            document.getElementById("lightbox-titulo").innerText = produto.titulo;
-            document.getElementById("lightbox-ingredientes").innerText = produto.descricao || '';
-            document.getElementById("lightbox-preco").innerText = `R$ ${produto.preco.toFixed(2).replace('.', ',')}`;
-            
-            const badgePromo = document.getElementById("lightbox-badge-promocao");
+            document.getElementById("modal-prod-img").src = produto.imagem_url;
+            document.getElementById("modal-prod-titulo").innerText = produto.titulo;
+            document.getElementById("modal-prod-descricao").innerText = produto.descricao || '';
+            document.getElementById("modal-prod-preco-base").innerText = `R$ ${produto.preco.toFixed(2).replace('.', ',')}`;
+            document.getElementById("modal-prod-obs").value = "";
+            document.getElementById("modal-prod-qtd").innerText = qtdModal;
+
+            const badgePromo = document.getElementById("modal-prod-badge-promo");
             if (produto.em_promocao) badgePromo.classList.remove("hidden");
             else badgePromo.classList.add("hidden");
 
-            const btnAdd = document.getElementById("lightbox-btn-add");
-            btnAdd.onclick = () => {
-                adicionarAoCarrinho(produto.id);
-                fecharLightbox();
-            };
+            // 1. Adicionais (da tabela)
+            const secaoAdicionais = document.getElementById("secao-adicionais");
+            const listaAdicionais = document.getElementById("lista-adicionais");
+            if (produto.adicionais && produto.adicionais.length > 0) {
+                secaoAdicionais.classList.remove("hidden");
+                listaAdicionais.innerHTML = produto.adicionais.map((adic, idx) => `
+                    <label class="flex justify-between items-center p-2.5 bg-gray-50 rounded-xl border border-gray-200 cursor-pointer hover:bg-amber-50 transition">
+                        <div class="flex items-center gap-2.5">
+                            <input type="checkbox" name="adicional-check" value="${idx}" onchange="recalcularTotalModal()" class="w-4 h-4 text-amber-600 rounded focus:ring-amber-500">
+                            <span class="text-sm font-medium text-gray-800">${adic.nome}</span>
+                        </div>
+                        <span class="text-xs font-bold text-amber-600">+ R$ ${adic.preco.toFixed(2).replace('.', ',')}</span>
+                    </label>
+                `).join('');
+            } else {
+                secaoAdicionais.classList.add("hidden");
+                listaAdicionais.innerHTML = '';
+            }
 
-            document.getElementById("modal-lightbox").classList.remove("hidden");
+            // 2. Remoções (automáticas da descrição para lanches)
+            const secaoRemocoes = document.getElementById("secao-remocoes");
+            const listaRemocoes = document.getElementById("lista-remocoes");
+            if (produto.remocoes && produto.remocoes.length > 0) {
+                secaoRemocoes.classList.remove("hidden");
+                listaRemocoes.innerHTML = produto.remocoes.map(item => `
+                    <label class="flex items-center gap-2 p-2 bg-gray-50 rounded-xl border border-gray-200 cursor-pointer hover:bg-red-50 transition">
+                        <input type="checkbox" name="remocao-check" value="${item}" class="w-4 h-4 text-red-600 rounded focus:ring-red-500">
+                        <span class="text-xs font-medium text-gray-700">Sem ${item}</span>
+                    </label>
+                `).join('');
+            } else {
+                secaoRemocoes.classList.add("hidden");
+                listaRemocoes.innerHTML = '';
+            }
+
+            recalcularTotalModal();
+            document.getElementById("modal-personalizacao").classList.remove("hidden");
             if (window.lucide) lucide.createIcons();
         }
 
-        function fecharLightbox() {
-            document.getElementById("modal-lightbox").classList.add("hidden");
+        function fecharModalPersonalizacao() {
+            document.getElementById("modal-personalizacao").classList.add("hidden");
+            itemEmEdicao = null;
         }
 
-        function adicionarAoCarrinho(idProduto) {
-            const itemExistente = carrinho.find(item => String(item.id) === String(idProduto));
-            if (itemExistente) {
-                itemExistente.quantidade++;
-            } else {
-                const produto = produtosGlobal.find(p => String(p.id) === String(idProduto));
-                if (produto) carrinho.push({ ...produto, quantidade: 1 });
-            }
+        function alterarQtdModal(delta) {
+            qtdModal += delta;
+            if (qtdModal < 1) qtdModal = 1;
+            document.getElementById("modal-prod-qtd").innerText = qtdModal;
+            recalcularTotalModal();
+        }
+
+        function recalcularTotalModal() {
+            if (!itemEmEdicao) return;
+            let precoUnitario = itemEmEdicao.preco;
+
+            const checks = document.querySelectorAll('input[name="adicional-check"]:checked');
+            checks.forEach(chk => {
+                const idx = parseInt(chk.value);
+                precoUnitario += itemEmEdicao.adicionais[idx].preco;
+            });
+
+            const totalFinal = precoUnitario * qtdModal;
+            document.getElementById("modal-btn-total").innerText = `R$ ${totalFinal.toFixed(2).replace('.', ',')}`;
+        }
+
+        function confirmarAdicaoCustomizada() {
+            if (!itemEmEdicao) return;
+
+            const adicionaisEscolhidos = [];
+            let precoAdicionais = 0;
+            document.querySelectorAll('input[name="adicional-check"]:checked').forEach(chk => {
+                const idx = parseInt(chk.value);
+                const item = itemEmEdicao.adicionais[idx];
+                adicionaisEscolhidos.push(item);
+                precoAdicionais += item.preco;
+            });
+
+            const remocoesEscolhidas = [];
+            document.querySelectorAll('input[name="remocao-check"]:checked').forEach(chk => {
+                remocoesEscolhidas.push(chk.value);
+            });
+
+            const observacao = document.getElementById("modal-prod-obs").value.trim();
+            const precoUnitarioFinal = itemEmEdicao.preco + precoAdicionais;
+
+            carrinho.push({
+                cartId: `${itemEmEdicao.id}-${Date.now()}-${Math.random()}`,
+                id: itemEmEdicao.id,
+                titulo: itemEmEdicao.titulo,
+                precoBase: itemEmEdicao.preco,
+                precoUnitario: precoUnitarioFinal,
+                quantidade: qtdModal,
+                adicionais: adicionaisEscolhidos,
+                remocoes: remocoesEscolhidas,
+                observacao: observacao
+            });
+
+            fecharModalPersonalizacao();
             atualizarCarrinhoUI();
         }
 
-        function alterarQuantidade(idProduto, delta) {
-            const index = carrinho.findIndex(item => String(item.id) === String(idProduto));
+        function alterarQuantidadeCarrinho(cartId, delta) {
+            const index = carrinho.findIndex(item => item.cartId === cartId);
             if (index === -1) return;
 
             carrinho[index].quantidade += delta;
@@ -551,7 +646,7 @@
 
         function atualizarCarrinhoUI() {
             const totalItens = carrinho.reduce((sum, item) => sum + item.quantidade, 0);
-            const valorTotal = carrinho.reduce((sum, item) => sum + (item.preco * item.quantidade), 0);
+            const valorTotal = carrinho.reduce((sum, item) => sum + (item.precoUnitario * item.quantidade), 0);
 
             const badge = document.getElementById("carrinho-qtd-badge");
             const barraFlutuante = document.getElementById("barra-carrinho-flutuante");
@@ -576,19 +671,40 @@
                 return;
             }
 
-            containerLista.innerHTML = carrinho.map(item => `
-                <div class="flex justify-between items-center bg-gray-50 p-2.5 rounded-xl border border-gray-100">
-                    <div class="flex-1 min-w-0 pr-2">
-                        <p class="font-semibold text-sm text-gray-900 truncate">${item.titulo}</p>
-                        <p class="text-xs text-gray-500">R$ ${item.preco.toFixed(2).replace('.', ',')} un.</p>
+            containerLista.innerHTML = carrinho.map(item => {
+                let detalhesCustom = [];
+                if (item.adicionais && item.adicionais.length > 0) {
+                    item.adicionais.forEach(a => detalhesCustom.push(`<span class="text-green-700 font-medium">+ ${a.nome}</span>`));
+                }
+                if (item.remocoes && item.remocoes.length > 0) {
+                    item.remocoes.forEach(r => detalhesCustom.push(`<span class="text-red-600 font-medium">- Sem ${r}</span>`));
+                }
+                if (item.observacao) {
+                    detalhesCustom.push(`<span class="text-gray-500 italic">Obs: "${item.observacao}"</span>`);
+                }
+
+                return `
+                    <div class="bg-gray-50 p-3 rounded-xl border border-gray-100 space-y-1.5">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1 min-w-0 pr-2">
+                                <p class="font-bold text-sm text-gray-900 truncate">${item.titulo}</p>
+                                <p class="text-xs text-gray-500">R$ ${item.precoUnitario.toFixed(2).replace('.', ',')} un.</p>
+                            </div>
+                            <div class="flex items-center gap-2 bg-white px-2 py-1 rounded-lg border">
+                                <button onclick="alterarQuantidadeCarrinho('${item.cartId}', -1)" class="text-gray-500 hover:text-red-600 font-bold px-1">-</button>
+                                <span class="text-xs font-bold text-gray-800 w-4 text-center">${item.quantidade}</span>
+                                <button onclick="alterarQuantidadeCarrinho('${item.cartId}', 1)" class="text-gray-500 hover:text-green-600 font-bold px-1">+</button>
+                            </div>
+                        </div>
+
+                        ${detalhesCustom.length > 0 ? `
+                            <div class="text-[11px] bg-white p-2 rounded-lg border border-gray-100 flex flex-col gap-0.5">
+                                ${detalhesCustom.join('')}
+                            </div>
+                        ` : ''}
                     </div>
-                    <div class="flex items-center gap-2 bg-white px-2 py-1 rounded-lg border">
-                        <button onclick="alterarQuantidade('${item.id}', -1)" class="text-gray-500 hover:text-red-600 font-bold px-1">-</button>
-                        <span class="text-xs font-bold text-gray-800 w-4 text-center">${item.quantidade}</span>
-                        <button onclick="alterarQuantidade('${item.id}', 1)" class="text-gray-500 hover:text-green-600 font-bold px-1">+</button>
-                    </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function abrirCarrinho() {
@@ -617,9 +733,7 @@
                 async (position) => {
                     const lat = position.coords.latitude;
                     const lng = position.coords.longitude;
-                    const linkMaps = `https://www.google.com/maps?q=${lat},${lng}`;
-                    
-                    document.getElementById("cliente-link-maps").value = linkMaps;
+                    document.getElementById("cliente-link-maps").value = `https://www.google.com/maps?q=${lat},${lng}`;
 
                     try {
                         const controller = new AbortController();
@@ -634,7 +748,6 @@
                             const rua = data.address.road || data.address.pedestrian || data.address.suburb || "Rua detectada";
                             const num = data.address.house_number ? `, nº ${data.address.house_number}` : "";
                             const bairro = data.address.neighbourhood || data.address.suburb || "";
-                            
                             let enderecoDetectado = rua + num;
                             if (bairro) enderecoDetectado += ` - ${bairro}`;
                             campoEndereco.value = enderecoDetectado;
@@ -670,20 +783,18 @@
                 document.getElementById("cliente-nome").focus();
                 return;
             }
-
             if (!endereco) {
                 alert("Por favor, preencha o endereço de entrega (ou use o GPS).");
                 document.getElementById("cliente-endereco").focus();
                 return;
             }
-
             if (!referencia) {
                 alert("Por favor, preencha um ponto de referência.");
                 document.getElementById("cliente-referencia").focus();
                 return;
             }
 
-            const valorTotal = carrinho.reduce((sum, item) => sum + (item.preco * item.quantidade), 0);
+            const valorTotal = carrinho.reduce((sum, item) => sum + (item.precoUnitario * item.quantidade), 0);
             const dataHora = new Date().toLocaleString('pt-BR');
 
             let formaPagamentoFormatada = pagamento;
@@ -700,12 +811,32 @@
 
             mensagem += `🛒 *ITENS DO PEDIDO*\n`;
             carrinho.forEach(item => {
-                const subtotalItem = (item.preco * item.quantidade).toFixed(2).replace('.', ',');
-                mensagem += `▪️ ${item.quantidade}x ${item.titulo}\n`;
-                mensagem += `   └ R$ ${subtotalItem}\n`;
+                const subtotalItem = (item.precoUnitario * item.quantidade).toFixed(2).replace('.', ',');
+                mensagem += `▪️ ${item.quantidade}x *${item.titulo}*\n`;
+                
+                // Adicionais
+                if (item.adicionais && item.adicionais.length > 0) {
+                    item.adicionais.forEach(a => {
+                        mensagem += `   ├ (+) ${a.nome} (+R$ ${a.preco.toFixed(2).replace('.', ',')})\n`;
+                    });
+                }
+
+                // Remoções automáticas
+                if (item.remocoes && item.remocoes.length > 0) {
+                    item.remocoes.forEach(r => {
+                        mensagem += `   ├ (-) Sem ${r}\n`;
+                    });
+                }
+
+                // Observação
+                if (item.observacao) {
+                    mensagem += `   ├ 📝 Obs: ${item.observacao}\n`;
+                }
+
+                mensagem += `   └ R$ ${subtotalItem}\n\n`;
             });
 
-            mensagem += `\n-----------------------------------\n`;
+            mensagem += `-----------------------------------\n`;
             mensagem += `💰 *TOTAL DO PEDIDO:* R$ ${valorTotal.toFixed(2).replace('.', ',')}\n`;
             mensagem += `💳 *Forma de Pagamento:* ${formaPagamentoFormatada}\n`;
             mensagem += `-----------------------------------\n\n`;
