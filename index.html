@@ -38,16 +38,22 @@
         };
     </script>
 
-    <!-- Header Principal -->
+    <!-- Header Principal com Nome e Logo Dinâmicos -->
     <header class="bg-amber-600 text-white p-4 shadow-md sticky top-0 z-20">
-        <div class="max-w-md mx-auto flex justify-between items-center">
-            <div>
-                <h1 class="text-xl font-bold tracking-wide">Lanchonete & Hamburgueria</h1>
-                <p class="text-xs text-amber-100 flex items-center gap-1 mt-0.5">
-                    <span class="w-2 h-2 bg-green-400 rounded-full inline-block animate-pulse"></span> Aberto agora para pedidos
-                </p>
+        <div class="max-w-md mx-auto flex justify-between items-center gap-3">
+            <div class="flex items-center gap-3 min-w-0">
+                <!-- Logo da Loja (injetada via NocoDB) -->
+                <img id="loja-logo" src="" alt="Logo" class="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm hidden shrink-0 bg-white">
+                
+                <div class="min-w-0">
+                    <h1 id="loja-nome" class="text-lg sm:text-xl font-bold tracking-wide truncate">Lanchonete & Hamburgueria</h1>
+                    <p class="text-xs text-amber-100 flex items-center gap-1 mt-0.5">
+                        <span class="w-2 h-2 bg-green-400 rounded-full inline-block animate-pulse shrink-0"></span> Aberto agora para pedidos
+                    </p>
+                </div>
             </div>
-            <button onclick="abrirCarrinho()" class="relative p-2 bg-amber-700 rounded-full hover:bg-amber-800 transition">
+            
+            <button onclick="abrirCarrinho()" class="relative p-2 bg-amber-700 rounded-full hover:bg-amber-800 transition shrink-0">
                 <i data-lucide="shopping-bag" class="w-6 h-6"></i>
                 <span id="carrinho-qtd-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center hidden">0</span>
             </button>
@@ -55,9 +61,9 @@
     </header>
 
     <!-- Navegação por Categorias -->
-    <nav class="bg-white shadow-sm border-b sticky top-[65px] z-10 py-3 px-4">
+    <nav class="bg-white shadow-sm border-b sticky top-[73px] z-10 py-3 px-4">
         <div class="max-w-md mx-auto flex gap-2 overflow-x-auto no-scrollbar" id="container-categorias">
-            <!-- Injetado via JS -->
+            <!-- Categorias injetadas via JS -->
         </div>
     </nav>
 
@@ -128,13 +134,11 @@
                 <form id="form-checkout" class="space-y-4 pt-4 border-t">
                     <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Dados para Entrega</h3>
                     
-                    <!-- Campo: Nome do Cliente -->
                     <div>
                         <label class="block text-xs font-medium text-gray-700 mb-1">Seu Nome Completo *</label>
                         <input type="text" id="cliente-nome" required placeholder="Digite seu nome completo" class="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
                     </div>
 
-                    <!-- Campo: Endereço com GPS -->
                     <div>
                         <div class="flex justify-between items-center mb-1">
                             <label class="block text-xs font-medium text-gray-700">Endereço de Entrega *</label>
@@ -149,13 +153,11 @@
                         </p>
                     </div>
 
-                    <!-- Campo: Referência -->
                     <div>
                         <label class="block text-xs font-medium text-gray-700 mb-1">Ponto de Referência *</label>
                         <input type="text" id="cliente-referencia" required placeholder="Ex: Casa azul, próx. ao mercado" class="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
                     </div>
 
-                    <!-- Campo: Pagamento -->
                     <div>
                         <label class="block text-xs font-medium text-gray-700 mb-1">Forma de Pagamento *</label>
                         <select id="cliente-pagamento" onchange="verificarFormaPagamento()" class="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
@@ -165,7 +167,6 @@
                         </select>
                     </div>
 
-                    <!-- Campo Condicional: Troco para Dinheiro -->
                     <div id="campo-troco-container" class="hidden bg-amber-50 p-3.5 rounded-xl border border-amber-300 transition-all duration-300 shadow-sm">
                         <label class="block text-xs font-bold text-amber-900 mb-1">Troco para quanto?</label>
                         <input type="text" id="cliente-troco" placeholder="Ex: Troco para R$ 50,00 (ou deixe em branco se não precisar)" class="w-full px-3 py-2.5 bg-white border border-amber-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium">
@@ -195,6 +196,10 @@
         let produtosGlobal = [];
         let carrinho = [];
         let categoriaAtiva = '';
+        let infoLoja = {
+            nome: "Lanchonete & Hamburgueria",
+            logo: null
+        };
 
         document.addEventListener("DOMContentLoaded", () => {
             carregarProdutos();
@@ -218,29 +223,23 @@
             }
         }
 
-        // Função robusta para extrair a imagem correta do NocoDB
         function extrairImagemUrl(img) {
             const placeholder = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80';
             if (!img) return placeholder;
 
-            // Se o campo vier como string JSON (comum em bancos SQL via NocoDB)
             if (typeof img === 'string') {
                 const trimmed = img.trim();
                 if ((trimmed.startsWith('[') && trimmed.endsWith(']')) || (trimmed.startsWith('{') && trimmed.endsWith('}'))) {
                     try {
                         img = JSON.parse(trimmed);
-                    } catch (e) {
-                        // continua como string
-                    }
+                    } catch (e) {}
                 }
             }
 
-            // Se for um array de anexos (padrão do campo Attachment no NocoDB)
             if (Array.isArray(img) && img.length > 0) {
                 const item = img[0];
                 if (typeof item === 'string') return formatarLink(item);
 
-                // PRIORIDADE MÁXIMA: signedUrl (permite acesso público da Amazon/Storage sem bloquear 401)
                 const link = item.signedUrl || 
                              item.thumbnails?.card_cover?.signedUrl || 
                              item.thumbnails?.small?.signedUrl || 
@@ -249,7 +248,6 @@
                 return formatarLink(link);
             }
 
-            // Se for um objeto único
             if (typeof img === 'object' && img !== null) {
                 const link = img.signedUrl || 
                              img.thumbnails?.card_cover?.signedUrl || 
@@ -259,7 +257,6 @@
                 return formatarLink(link);
             }
 
-            // Se for URL direta em formato de texto simples
             if (typeof img === 'string' && img.trim() !== '') {
                 return formatarLink(img.trim());
             }
@@ -271,17 +268,14 @@
             const placeholder = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80';
             if (!link) return placeholder;
 
-            // Se já for link completo (HTTP/HTTPS ou base64)
             if (link.startsWith('http://') || link.startsWith('https://') || link.startsWith('data:image')) {
                 return link;
             }
 
-            // Remove barras iniciais duplicadas caso seja relativo
             const caminhoLimpo = link.startsWith('/') ? link.substring(1) : link;
             return `${CONFIG.NOCODB_URL}/${caminhoLimpo}`;
         }
 
-        // Localiza a coluna de foto independentemente de como foi nomeada no NocoDB
         function encontrarCampoImagem(p) {
             const camposPossiveis = [
                 'imagem_url', 'imagem', 'Imagem', 'Image', 'image', 
@@ -295,7 +289,6 @@
                 }
             }
 
-            // Se não encontrou pelo nome, busca qualquer propriedade que pareça imagem
             for (const chave in p) {
                 const valor = p[chave];
                 if (Array.isArray(valor) && valor.length > 0 && (valor[0]?.signedUrl || valor[0]?.url || valor[0]?.path)) {
@@ -307,6 +300,23 @@
             }
 
             return null;
+        }
+
+        // Aplica o nome e logo no cabeçalho
+        function atualizarCabecalhoLoja() {
+            const elNome = document.getElementById("loja-nome");
+            const elLogo = document.getElementById("loja-logo");
+
+            if (elNome && infoLoja.nome) {
+                elNome.innerText = infoLoja.nome;
+                document.title = `${infoLoja.nome} - Cardápio Digital`;
+            }
+
+            if (elLogo && infoLoja.logo) {
+                elLogo.src = infoLoja.logo;
+                elLogo.classList.remove("hidden");
+                elLogo.onerror = () => elLogo.classList.add("hidden");
+            }
         }
 
         async function carregarProdutos() {
@@ -330,7 +340,30 @@
                 const data = await response.json();
                 const listaBruta = Array.isArray(data) ? data : (data.list || data.data || []);
 
-                produtosGlobal = listaBruta.map((p, index) => {
+                // 1. Procura se há dados da loja configurados em qualquer linha da tabela
+                for (const item of listaBruta) {
+                    const nomeDetectado = item.nome_loja || item.Nome_Loja || item.loja_nome || item.nome_estabelecimento;
+                    if (nomeDetectado && !infoLoja.customizado) {
+                        infoLoja.nome = String(nomeDetectado).trim();
+                        infoLoja.customizado = true;
+                    }
+
+                    const logoDetectada = item.logo_loja || item.Logo_Loja || item.logo || item.Logo;
+                    if (logoDetectada && !infoLoja.logo) {
+                        infoLoja.logo = extrairImagemUrl(logoDetectada);
+                    }
+                }
+
+                atualizarCabecalhoLoja();
+
+                // 2. Filtra eventuais linhas dedicadas apenas a configurações (ex: categoria 'config')
+                const itensValidos = listaBruta.filter(p => {
+                    const cat = String(p.categoria || p.Categoria || '').toLowerCase().trim();
+                    const tit = String(p.titulo || p.Titulo || '').toLowerCase().trim();
+                    return cat !== 'config' && tit !== 'config' && tit !== '__config__';
+                });
+
+                produtosGlobal = itensValidos.map((p, index) => {
                     const id = p.Id ?? p.id ?? index;
                     const titulo = p.titulo ?? p.Titulo ?? p.nome ?? p.Nome ?? p.Title ?? 'Sem título';
                     const descricao = p.descricao ?? p.Descricao ?? p.Description ?? '';
@@ -341,7 +374,6 @@
                     const categoria = p.categoria ?? p.Categoria ?? p.Category ?? 'Geral';
                     const emPromo = p.em_promocao === true || p.em_promocao === 'true' || p.em_promocao === 1 || p.Promocao === true;
 
-                    // Busca a imagem de forma inteligente
                     const dadoImagem = encontrarCampoImagem(p);
                     const imagem = extrairImagemUrl(dadoImagem);
 
@@ -360,7 +392,7 @@
                     containerProdutos.innerHTML = `
                         <div class="bg-yellow-50 border border-yellow-200 p-4 rounded-xl text-center">
                             <p class="text-sm font-bold text-yellow-800">Tabela vazia no NocoDB!</p>
-                            <p class="text-xs text-yellow-600 mt-1">Nenhum registro encontrado nesta tabela.</p>
+                            <p class="text-xs text-yellow-600 mt-1">Nenhum produto encontrado nesta tabela.</p>
                         </div>`;
                     return;
                 }
@@ -659,7 +691,7 @@
                 formaPagamentoFormatada += troco ? ` *(Troco para: ${troco})*` : ` *(Não precisa de troco)*`;
             }
 
-            let mensagem = `🧾 *NOTA FISCAL DE PEDIDO*\n`;
+            let mensagem = `🧾 *NOTA FISCAL DE PEDIDO - ${infoLoja.nome.toUpperCase()}*\n`;
             mensagem += `📅 Data: ${dataHora}\n`;
             mensagem += `-----------------------------------\n\n`;
             
@@ -686,7 +718,7 @@
                 mensagem += `\n🌐 *Localização Exata no Google Maps:*\n${linkMaps}\n`;
             }
 
-            mensagem += `\n_Pedido gerado via Cardápio Digital._`;
+            mensagem += `\n_Pedido gerado via Cardápio Digital - ${infoLoja.nome}._`;
 
             const urlWhatsApp = `https://wa.me/${CONFIG.TELEFONE_WHATSAPP}?text=${encodeURIComponent(mensagem)}`;
             window.open(urlWhatsApp, '_blank');
