@@ -28,7 +28,7 @@
 </head>
 <body class="bg-gray-50 text-gray-800 pb-24 min-h-screen">
 
-    <!-- Configuração Atualizada -->
+    <!-- Configuração do NocoDB e WhatsApp -->
     <script>
         const CONFIG = {
             TELEFONE_WHATSAPP: "5511994405587",
@@ -54,10 +54,10 @@
         </div>
     </header>
 
-    <!-- Navegação por Categorias -->
+    <!-- Navegação por Categorias (Sem a opção 'Todas') -->
     <nav class="bg-white shadow-sm border-b sticky top-[65px] z-10 py-3 px-4">
         <div class="max-w-md mx-auto flex gap-2 overflow-x-auto no-scrollbar" id="container-categorias">
-            <!-- Injetado via JS -->
+            <!-- Categorias injetadas via JS -->
         </div>
     </nav>
 
@@ -121,7 +121,7 @@
                 <div>
                     <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Itens selecionados</h3>
                     <div id="lista-itens-carrinho" class="space-y-3">
-                        <!-- Injetado via JS -->
+                        <!-- Itens do carrinho -->
                     </div>
                 </div>
 
@@ -183,14 +183,13 @@
     <script>
         let produtosGlobal = [];
         let carrinho = [];
-        let categoriaAtiva = 'todas';
+        let categoriaAtiva = '';
 
         document.addEventListener("DOMContentLoaded", () => {
             carregarProdutos();
             if (window.lucide) lucide.createIcons();
         });
 
-        // Função auxiliar para obter URL de imagem (seja string ou anexo do NocoDB)
         function extrairImagemUrl(img) {
             if (!img) return 'https://via.placeholder.com/300?text=Sem+Foto';
             if (Array.isArray(img) && img.length > 0) {
@@ -223,7 +222,6 @@
                 const data = await response.json();
                 const listaBruta = Array.isArray(data) ? data : (data.list || data.data || []);
 
-                // Normaliza os registros para aceitar nomes com maiúsculas/minúsculas
                 produtosGlobal = listaBruta.map((p, index) => {
                     const id = p.Id ?? p.id ?? index;
                     const titulo = p.titulo ?? p.Titulo ?? p.nome ?? p.Nome ?? p.Title ?? 'Sem título';
@@ -275,34 +273,49 @@
             
             const temPromocoes = produtosGlobal.some(p => p.em_promocao);
 
-            let categorias = ['todas'];
-            if (temPromocoes) categorias.push('promocoes');
-            categorias.push(...new Set(produtosGlobal.map(p => p.categoria).filter(Boolean)));
+            // Cria lista de categorias (SEM a opção 'todas')
+            let categorias = [];
+            if (temPromocoes) {
+                categorias.push('promocoes');
+            }
 
+            // Apenas adiciona categorias normais que possuam itens que NÃO estejam em promoção
+            const categoriasNormais = [...new Set(
+                produtosGlobal
+                    .filter(p => !p.em_promocao)
+                    .map(p => p.categoria)
+                    .filter(Boolean)
+            )];
+            categorias.push(...categoriasNormais);
+
+            // Se a categoria selecionada não existir mais, seleciona a primeira da lista
+            if (!categorias.includes(categoriaAtiva)) {
+                categoriaAtiva = categorias[0] || '';
+            }
+
+            // Renderiza os botões das categorias
             containerCategorias.innerHTML = categorias.map(cat => {
-                let nomeExibicao = cat;
-                if (cat === 'todas') nomeExibicao = 'Todas';
-                if (cat === 'promocoes') nomeExibicao = '🔥 Promoções';
+                let nomeExibicao = cat === 'promocoes' ? '🔥 Promoções' : cat;
 
                 return `
                     <button onclick="filtrarCategoria('${cat}')" 
-                            class="categoria-btn px-4 py-1.5 rounded-full text-sm font-medium capitalize shrink-0 transition ${cat === categoriaAtiva ? 'bg-amber-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}">
+                            class="categoria-btn px-4 py-1.5 rounded-full text-sm font-medium capitalize shrink-0 transition ${cat === categoriaAtiva ? 'bg-amber-600 text-white font-bold shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}">
                         ${nomeExibicao}
                     </button>
                 `;
             }).join('');
 
+            // Filtro: se for promoções exibe apenas itens em promoção; 
+            // se for outra categoria exibe APENAS itens que NÃO estejam em promoção
             let produtosFiltrados = [];
-            if (categoriaAtiva === 'todas') {
-                produtosFiltrados = produtosGlobal;
-            } else if (categoriaAtiva === 'promocoes') {
+            if (categoriaAtiva === 'promocoes') {
                 produtosFiltrados = produtosGlobal.filter(p => p.em_promocao);
             } else {
-                produtosFiltrados = produtosGlobal.filter(p => p.categoria === categoriaAtiva);
+                produtosFiltrados = produtosGlobal.filter(p => p.categoria === categoriaAtiva && !p.em_promocao);
             }
 
             if (produtosFiltrados.length === 0) {
-                containerProdutos.innerHTML = `<p class="text-center py-8 text-gray-500">Nenhum produto encontrado nesta categoria.</p>`;
+                containerProdutos.innerHTML = `<p class="text-center py-8 text-gray-500">Nenhum produto disponível nesta categoria.</p>`;
                 return;
             }
 
