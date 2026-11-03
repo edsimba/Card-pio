@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cardápio Digital</title>
-    <!-- Tailwind CSS CDN -->
+    <title>Cardápio Digital Interativo</title>
+    <!-- Tailwind CSS CDN para estilização moderna e responsiva -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Ícones Lucide -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
+        /* Personalização da barra de rolagem */
         ::-webkit-scrollbar {
             height: 6px;
             width: 6px;
@@ -28,17 +29,17 @@
 </head>
 <body class="bg-gray-50 text-gray-800 pb-24 min-h-screen">
 
-    <!-- Configuração da Aplicação -->
+    <!-- Configuração da Aplicação via Variáveis da Vercel com Fallback Local -->
     <script>
         const CONFIG = {
-            TELEFONE_WHATSAPP: "5589999999999", // Insira seu número com DDD
-            NOCODB_URL: "https://app.nocodb.com",
-            NOCODB_TOKEN: "SEU_NOCODB_API_TOKEN_AQUI",
-            NOCODB_TABLE_PATH: "/api/v2/tables/SEU_TABLE_ID/records"
+            TELEFONE_WHATSAPP: "<!-- %TELEFONE_WHATSAPP% -->" !== "<!-- " + "%TELEFONE_WHATSAPP%" + " -->" ? "<!-- %TELEFONE_WHATSAPP% -->" : "5589999999999",
+            NOCODB_URL: "<!-- %NOCODB_URL% -->" !== "<!-- " + "%NOCODB_URL%" + " -->" ? "<!-- %NOCODB_URL% -->" : "https://app.nocodb.com",
+            NOCODB_TOKEN: "<!-- %NOCODB_TOKEN% -->" !== "<!-- " + "%NOCODB_TOKEN%" + " -->" ? "<!-- %NOCODB_TOKEN% -->" : "SEU_NOCODB_API_TOKEN_AQUI",
+            NOCODB_TABLE_PATH: "<!-- %NOCODB_TABLE_PATH% -->" !== "<!-- " + "%NOCODB_TABLE_PATH%" + " -->" ? "<!-- %NOCODB_TABLE_PATH% -->" : "/api/v2/tables/SEU_TABLE_ID/records"
         };
     </script>
 
-    <!-- Header do Estabelecimento -->
+    <!-- Header Principal do Estabelecimento -->
     <header class="bg-amber-600 text-white p-4 shadow-md sticky top-0 z-20">
         <div class="max-w-md mx-auto flex justify-between items-center">
             <div>
@@ -54,14 +55,14 @@
         </div>
     </header>
 
-    <!-- Categorias (Barra de Rolagem Horizontal) -->
+    <!-- Navegação por Categorias (Rolagem Horizontal Suave) -->
     <nav class="bg-white shadow-sm border-b sticky top-[65px] z-10 py-3 px-4">
         <div class="max-w-md mx-auto flex gap-2 overflow-x-auto no-scrollbar" id="container-categorias">
-            <!-- Injetado via JS -->
+            <!-- As categorias serão injetadas dinamicamente via JS -->
         </div>
     </nav>
 
-    <!-- Lista de Produtos -->
+    <!-- Conteúdo Principal: Lista de Produtos -->
     <main class="max-w-md mx-auto p-4 space-y-4" id="container-produtos">
         <div class="text-center py-12 text-gray-500" id="loading-state">
             <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-amber-600 border-t-transparent mb-2"></div>
@@ -69,7 +70,7 @@
         </div>
     </main>
 
-    <!-- Barra Flutuante de Resumo do Carrinho -->
+    <!-- Barra Flutuante de Resumo do Carrinho no Rodapé -->
     <div id="barra-carrinho-flutuante" class="fixed bottom-4 left-4 right-4 max-w-md mx-auto bg-gray-900 text-white p-4 rounded-2xl shadow-2xl flex justify-between items-center z-20 hidden">
         <div>
             <p class="text-xs text-gray-400">Total acumulado</p>
@@ -80,7 +81,7 @@
         </button>
     </div>
 
-    <!-- Modal 1: Ampliação de Imagem (Lightbox) -->
+    <!-- Modal 1: Lightbox (Ampliação da Imagem e Detalhes) -->
     <div id="modal-lightbox" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden" onclick="fecharLightbox()">
         <div class="bg-white rounded-2xl overflow-hidden max-w-sm w-full shadow-2xl" onclick="event.stopPropagation()">
             <div class="relative bg-black">
@@ -105,7 +106,7 @@
         </div>
     </div>
 
-    <!-- Modal 2: Carrinho e Checkout -->
+    <!-- Modal 2: Carrinho de Compras e Form de Checkout -->
     <div id="modal-carrinho" class="fixed inset-0 bg-black/50 z-40 flex justify-end hidden">
         <div class="bg-white w-full max-w-md h-full flex flex-col justify-between shadow-2xl animate-in slide-in-from-right duration-300">
             <!-- Topo do Carrinho -->
@@ -118,7 +119,7 @@
                 </button>
             </div>
 
-            <!-- Lista de Itens / Formulário -->
+            <!-- Lista de Produtos Adicionados + Form de Entrega -->
             <div class="p-4 overflow-y-auto space-y-6 flex-1" id="corpo-carrinho">
                 <div>
                     <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Itens selecionados</h3>
@@ -165,7 +166,7 @@
                 </form>
             </div>
 
-            <!-- Rodapé Carrinho -->
+            <!-- Rodapé com Total e Ação de Finalizar -->
             <div class="p-4 border-t bg-gray-50 space-y-3">
                 <div class="flex justify-between items-center text-sm">
                     <span class="text-gray-600">Subtotal</span>
@@ -182,18 +183,18 @@
         </div>
     </div>
 
-    <!-- Script Principal -->
+    <!-- Script de Lógica do Sistema -->
     <script>
         let produtosGlobal = [];
         let carrinho = [];
         let categoriaAtiva = 'todas';
 
-        // Dados de demonstração (incluindo campo `em_promocao: true`)
+        // Dados de teste caso a API do NocoDB não seja acessada localmente
         const MOCK_PRODUTOS = [
             {
                 id: 1,
                 titulo: "Combo X-Burger + Refri",
-                descricao: "Pão brioche, hambúrguer 180g, cheddar, bacon + Coca-Cola lata gelada.",
+                descricao: "Pão brioche, hambúrguer artesanal 180g, queijo cheddar, bacon crocante + Coca-Cola lata geladinha.",
                 preco: 32.90,
                 categoria: "Combos",
                 em_promocao: true,
@@ -211,7 +212,7 @@
             {
                 id: 3,
                 titulo: "Batata Suprema",
-                descricao: "Porção de 400g de batata frita coberta com molho cheddar e bacon.",
+                descricao: "Porção de 400g de batata frita coberta com molho cheddar cremoso e bacon em cubos.",
                 preco: 18.00,
                 categoria: "Porções",
                 em_promocao: true,
@@ -233,6 +234,7 @@
             lucide.createIcons();
         });
 
+        // 1. Requisição para o NocoDB
         async function carregarProdutos() {
             try {
                 const response = await fetch(`${CONFIG.NOCODB_URL}${CONFIG.NOCODB_TABLE_PATH}`, {
@@ -243,33 +245,33 @@
                     }
                 });
 
-                if (!response.ok) throw new Error("Erro na API NocoDB");
+                if (!response.ok) throw new Error("Erro de comunicação com o NocoDB");
 
                 const data = await response.json();
                 produtosGlobal = data.list || data;
                 renderizarInterface();
             } catch (error) {
-                console.warn("Utilizando dados de demonstração (NocoDB não configurado).", error);
+                console.warn("API NocoDB offline ou token não preenchido. Usando dados locais para demonstração.", error);
                 produtosGlobal = MOCK_PRODUTOS;
                 renderizarInterface();
             }
         }
 
+        // 2. Renderização de Categorias e Produtos
         function renderizarInterface() {
             const containerProdutos = document.getElementById("container-produtos");
             const containerCategorias = document.getElementById("container-categorias");
             
-            // Verificar se existem produtos em promoção
+            // Verifica se há pelo menos um item marcado em promoção
             const temPromocoes = produtosGlobal.some(p => p.em_promocao === true || p.em_promocao === "true" || p.em_promocao === 1);
 
-            // Montar lista de categorias dinâmicas
             let categorias = ['todas'];
             if (temPromocoes) {
                 categorias.push('promocoes');
             }
             categorias.push(...new Set(produtosGlobal.map(p => p.categoria)));
 
-            // Renderizar botões de categoria
+            // Renderizar Abas de Categorias
             containerCategorias.innerHTML = categorias.map(cat => {
                 let nomeExibicao = cat;
                 if (cat === 'todas') nomeExibicao = 'Todas';
@@ -283,7 +285,7 @@
                 `;
             }).join('');
 
-            // Filtrar produtos de acordo com a categoria ativa
+            // Filtragem de Produtos
             let produtosFiltrados = [];
             if (categoriaAtiva === 'todas') {
                 produtosFiltrados = produtosGlobal;
@@ -298,13 +300,13 @@
                 return;
             }
 
-            // Renderizar cards dos produtos com Badge de Promoção se aplicável
+            // Renderizar Lista de Produtos
             containerProdutos.innerHTML = produtosFiltrados.map(prod => {
                 const emPromo = prod.em_promocao === true || prod.em_promocao === "true" || prod.em_promocao === 1;
 
                 return `
                     <div class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 items-center relative overflow-hidden">
-                        <!-- Imagem com Lightbox -->
+                        <!-- Foto do Produto com Evento Lightbox -->
                         <div class="relative w-24 h-24 rounded-xl overflow-hidden shrink-0 cursor-pointer group" onclick="abrirLightbox(${prod.id})">
                             <img src="${prod.imagem_url}" alt="${prod.titulo}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
                             <div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
@@ -312,7 +314,7 @@
                             </div>
                         </div>
 
-                        <!-- Detalhes do Produto -->
+                        <!-- Descrição do Produto -->
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-1.5 mb-0.5">
                                 <h3 class="font-bold text-gray-900 text-sm truncate cursor-pointer" onclick="abrirLightbox(${prod.id})">${prod.titulo}</h3>
@@ -336,11 +338,13 @@
             lucide.createIcons();
         }
 
+        // 3. Troca de Categorias
         function filtrarCategoria(cat) {
             categoriaAtiva = cat;
             renderizarInterface();
         }
 
+        // 4. Modal Lightbox (Ampliação de Fotos)
         function abrirLightbox(idProduto) {
             const produto = produtosGlobal.find(p => p.id === idProduto);
             if (!produto) return;
@@ -373,6 +377,7 @@
             document.getElementById("modal-lightbox").classList.add("hidden");
         }
 
+        // 5. Funções de Carrinho
         function adicionarAoCarrinho(idProduto) {
             const itemExistente = carrinho.find(item => item.id === idProduto);
             if (itemExistente) {
@@ -446,6 +451,7 @@
             document.getElementById("modal-carrinho").classList.add("hidden");
         }
 
+        // 6. Captura de Geolocalização (GPS)
         function obterLocalizacaoGPS() {
             const statusGps = document.getElementById("status-gps");
             if (!navigator.geolocation) {
@@ -474,6 +480,7 @@
             );
         }
 
+        // 7. Envio do Pedido Formatado para o WhatsApp
         function finalizarPedidoWhatsApp() {
             const nome = document.getElementById("cliente-nome").value.trim();
             const endereco = document.getElementById("cliente-endereco").value.trim();
